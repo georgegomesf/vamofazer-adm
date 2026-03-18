@@ -6,8 +6,18 @@ import Link from "next/link";
 
 export default async function Home() {
   const session = await auth();
-  const defaultProjectId = process.env.NEXT_PUBLIC_PROJECT_ID;
+  const projectId = process.env.NEXT_PUBLIC_PROJECT_ID;
   let projectName = "Rede Filosófica";
+
+  if (projectId) {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_AUTH_SERVICE_URL}/api/projects/${projectId}`);
+      const project = await res.json();
+      if (project.name) projectName = project.name;
+    } catch (e) {
+      console.error("Error fetching project:", e);
+    }
+  }
 
   if (!session) {
     return (
