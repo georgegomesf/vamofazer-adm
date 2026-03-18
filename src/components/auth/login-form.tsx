@@ -59,11 +59,38 @@ export default function LoginForm() {
     };
 
     const handleMagicLink = async () => {
+        if (!email && !registeredEmail) {
+            setError("Digite seu e-mail para receber o link");
+            return;
+        }
+
         setLoading(true);
-        // Redirect to remote auth for magic link
-        const currentOrigin = window.location.origin;
-        const targetCallback = `${currentOrigin}/auth/callback?dest=${encodeURIComponent(callbackUrl)}`;
-        window.location.href = `${authServiceUrl}/auth/signin?callbackUrl=${encodeURIComponent(targetCallback)}&projectId=${projectId}&email=${encodeURIComponent(email || registeredEmail)}`;
+        setError("");
+
+        try {
+            const currentOrigin = window.location.origin;
+            const res = await fetch(`${authServiceUrl}/api/mobile/magic-link`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    email: email || registeredEmail,
+                    callbackUrl: callbackUrl,
+                    projectId: projectId
+                })
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+                setMagicLinkSent(true);
+            } else {
+                setError(data.error || "Algo deu errado");
+            }
+        } catch (err) {
+            setError("Não foi possível enviar o link. Tente novamente.");
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
