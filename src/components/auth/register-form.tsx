@@ -81,62 +81,62 @@ export default function RegisterForm() {
                 )}
 
                 <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-300 ml-1">Nome completo</label>
+                    <label className="text-sm font-medium text-zinc-600 ml-1">Nome completo</label>
                     <div className="relative group">
-                        <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500 group-focus-within:text-emerald-500 transition-colors" />
+                        <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400 group-focus-within:text-emerald-500 transition-colors" />
                         <input
                             type="text"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             placeholder="Seu nome"
                             required
-                            className="w-full bg-zinc-900/80 border border-zinc-800 text-white rounded-xl py-3.5 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/50 transition-all placeholder:text-zinc-600"
+                            className="w-full bg-white border border-zinc-200 text-zinc-900 rounded-xl py-3.5 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/50 transition-all placeholder:text-zinc-400"
                         />
                     </div>
                 </div>
 
                 <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-300 ml-1">E-mail</label>
+                    <label className="text-sm font-medium text-zinc-600 ml-1">E-mail</label>
                     <div className="relative group">
-                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500 group-focus-within:text-emerald-500 transition-colors" />
+                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400 group-focus-within:text-emerald-500 transition-colors" />
                         <input
                             type="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             placeholder="seu@email.com"
                             required
-                            className="w-full bg-zinc-900/80 border border-zinc-800 text-white rounded-xl py-3.5 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/50 transition-all placeholder:text-zinc-600"
+                            className="w-full bg-white border border-zinc-200 text-zinc-900 rounded-xl py-3.5 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/50 transition-all placeholder:text-zinc-400"
                         />
                     </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-zinc-300 ml-1">Senha</label>
+                        <label className="text-sm font-medium text-zinc-600 ml-1">Senha</label>
                         <div className="relative group">
-                            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500 group-focus-within:text-emerald-500 transition-colors" />
+                            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400 group-focus-within:text-emerald-500 transition-colors" />
                             <input
                                 type="password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 placeholder="******"
                                 required
-                                className="w-full bg-zinc-900/80 border border-zinc-800 text-white rounded-xl py-3.5 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/50 transition-all placeholder:text-zinc-600"
+                                className="w-full bg-white border border-zinc-200 text-zinc-900 rounded-xl py-3.5 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/50 transition-all placeholder:text-zinc-400"
                             />
                         </div>
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-zinc-300 ml-1">Confirmar Senha</label>
+                        <label className="text-sm font-medium text-zinc-600 ml-1">Confirmar Senha</label>
                         <div className="relative group">
-                            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500 group-focus-within:text-emerald-500 transition-colors" />
+                            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400 group-focus-within:text-emerald-500 transition-colors" />
                             <input
                                 type="password"
                                 value={confirmPassword}
                                 onChange={(e) => setConfirmPassword(e.target.value)}
                                 placeholder="******"
                                 required
-                                className="w-full bg-zinc-900/80 border border-zinc-800 text-white rounded-xl py-3.5 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/50 transition-all placeholder:text-zinc-600"
+                                className="w-full bg-white border border-zinc-200 text-zinc-900 rounded-xl py-3.5 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/50 transition-all placeholder:text-zinc-400"
                             />
                         </div>
                     </div>
@@ -153,17 +153,17 @@ export default function RegisterForm() {
 
             <div className="relative my-4">
                 <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-zinc-800" />
+                    <div className="w-full border-t border-zinc-200" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-[#0b0b0b] px-4 text-zinc-500 font-medium tracking-widest">ou use google</span>
+                    <span className="bg-white px-4 text-zinc-400 font-medium tracking-widest">ou use google</span>
                 </div>
             </div>
 
             <button
                 onClick={handleGoogleRegister}
                 disabled={loading}
-                className="w-full flex items-center justify-center gap-3 bg-white text-black font-semibold py-3.5 px-4 rounded-xl hover:bg-zinc-200 transition-all duration-200 group disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-3 bg-white text-zinc-950 font-semibold py-3.5 px-4 rounded-xl border border-zinc-200 hover:bg-zinc-50 transition-all duration-200 group disabled:opacity-50 shadow-sm"
             >
                 <GoogleIcon className="w-5 h-5" />
                 <span>Registrar com Google</span>

@@ -114,7 +114,7 @@ export default function LoginForm() {
             <button
                 onClick={handleGoogleLogin}
                 disabled={loading}
-                className="w-full flex items-center justify-center gap-3 bg-white text-black font-semibold py-3.5 px-4 rounded-xl hover:bg-zinc-200 transition-all duration-200 group disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-3 bg-white text-zinc-950 font-semibold py-3.5 px-4 rounded-xl border border-zinc-200 hover:bg-zinc-50 transition-all duration-200 group disabled:opacity-50 shadow-sm"
             >
                 <GoogleIcon className="w-5 h-5" />
                 <span>Continuar com Google</span>
@@ -122,10 +122,10 @@ export default function LoginForm() {
 
             <div className="relative my-4">
                 <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-zinc-800" />
+                    <div className="w-full border-t border-zinc-200" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-[#0b0b0b] px-4 text-zinc-500 font-medium tracking-widest">ou use e-mail e senha</span>
+                    <span className="bg-white px-4 text-zinc-400 font-medium tracking-widest">ou use e-mail e senha</span>
                 </div>
             </div>
 
@@ -137,36 +137,36 @@ export default function LoginForm() {
                 )}
 
                 <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-300 ml-1">E-mail</label>
+                    <label className="text-sm font-medium text-zinc-600 ml-1">E-mail</label>
                     <div className="relative group">
-                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500 group-focus-within:text-blue-500 transition-colors" />
+                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400 group-focus-within:text-blue-500 transition-colors" />
                         <input
                             type="email"
                             value={email || registeredEmail}
                             onChange={(e) => setEmail(e.target.value)}
                             placeholder="seu@email.com"
                             required
-                            className="w-full bg-zinc-900/80 border border-zinc-800 text-white rounded-xl py-3.5 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all placeholder:text-zinc-600"
+                            className="w-full bg-white border border-zinc-200 text-zinc-900 rounded-xl py-3.5 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all placeholder:text-zinc-400"
                         />
                     </div>
                 </div>
 
                 <div className="space-y-2">
                     <div className="flex justify-between items-center ml-1">
-                        <label className="text-sm font-medium text-zinc-300">Senha</label>
-                        <Link href="/auth/reset" className="text-sm font-medium text-blue-500 hover:text-blue-400 transition-colors">
+                        <label className="text-sm font-medium text-zinc-600">Senha</label>
+                        <Link href="/auth/reset" className="text-sm font-medium text-blue-600 hover:text-blue-500 transition-colors">
                             Esqueceu a senha?
                         </Link>
                     </div>
                     <div className="relative group">
-                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500 group-focus-within:text-blue-500 transition-colors" />
+                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400 group-focus-within:text-blue-500 transition-colors" />
                         <input
                             type="password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             placeholder="••••••••"
                             required
-                            className="w-full bg-zinc-900/80 border border-zinc-800 text-white rounded-xl py-3.5 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all placeholder:text-zinc-600"
+                            className="w-full bg-white border border-zinc-200 text-zinc-900 rounded-xl py-3.5 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all placeholder:text-zinc-400"
                         />
                     </div>
                 </div>
@@ -182,10 +182,10 @@ export default function LoginForm() {
 
             <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-zinc-800" />
+                    <div className="w-full border-t border-zinc-200" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-[#0b0b0b] px-4 text-zinc-500 font-medium tracking-widest">OU receba um</span>
+                    <span className="bg-white px-4 text-zinc-400 font-medium tracking-widest">OU receba um</span>
                 </div>
             </div>
 
@@ -193,7 +193,7 @@ export default function LoginForm() {
                 <button
                     onClick={handleMagicLink}
                     disabled={loading}
-                    className="flex items-center gap-2 text-zinc-400 hover:text-white text-sm transition-colors border border-zinc-800 rounded-lg px-4 py-2 hover:bg-zinc-800 disabled:opacity-50"
+                    className="flex items-center gap-2 text-zinc-500 hover:text-zinc-950 text-sm transition-colors border border-zinc-200 rounded-lg px-4 py-2 hover:bg-zinc-50 disabled:opacity-50"
                 >
                     <MailQuestion className="w-4 h-4" />
                     LINK de acesso por e-mail

@@ -26,17 +26,16 @@ function AuthCallbackContent() {
     }, [searchParams, router]);
 
     return (
-        <div className="min-h-screen bg-[#050505] text-white flex flex-col items-center justify-center p-6 text-center">
-            <Loader2 className="w-12 h-12 text-blue-500 animate-spin mb-4" />
-            <p className="text-zinc-400">Finalizando autenticação...</p>
-            {error && <p className="text-red-500 mt-4">{error}</p>}
+        <div className="min-h-screen bg-zinc-50 text-zinc-950 flex flex-col items-center justify-center p-6 text-center">
+            <Loader2 className="w-12 h-12 text-emerald-500 animate-spin mb-4" />
+            <p className="text-zinc-500">Finalizando autenticação...</p>
         </div>
     );
 }
 
 export default function AuthCallback() {
     return (
-        <Suspense fallback={<div className="min-h-screen bg-[#050505] text-white flex flex-col items-center justify-center p-6 text-center"><Loader2 className="w-12 h-12 text-blue-500 animate-spin mb-4" /><p className="text-zinc-400">Carregando...</p></div>}>
+        <Suspense fallback={<div className="min-h-screen bg-zinc-50 text-zinc-950 flex flex-col items-center justify-center p-6 text-center"><Loader2 className="w-12 h-12 text-emerald-500 animate-spin mb-4" /><p className="text-zinc-500">Carregando...</p></div>}>
             <AuthCallbackContent />
         </Suspense>
     );
