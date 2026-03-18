@@ -9,7 +9,8 @@ export async function resetPassword(formData: FormData) {
     try {
         const res = await axios.post(`${process.env.NEXT_PUBLIC_AUTH_SERVICE_URL}/api/mobile/reset`, {
             email,
-            projectId
+            projectId,
+            environment: 'web'
         });
 
         return res.data;
