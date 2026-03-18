@@ -36,11 +36,17 @@ export default function RegisterForm() {
         setError("");
         setSuccess("");
 
+        const currentOrigin = window.location.origin;
+        let absoluteCallback = callbackUrl;
+        if (callbackUrl.startsWith('/')) {
+            absoluteCallback = `${currentOrigin}${callbackUrl}`;
+        }
+
         const formData = new FormData();
         formData.append("name", name);
         formData.append("email", email);
         formData.append("password", password);
-        formData.append("callbackUrl", callbackUrl);
+        formData.append("callbackUrl", absoluteCallback);
 
         const result = await registerUser(formData);
 
