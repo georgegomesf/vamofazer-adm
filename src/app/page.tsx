@@ -7,7 +7,7 @@ import Link from "next/link";
 export default async function Home() {
   const session = await auth();
   const projectId = process.env.NEXT_PUBLIC_PROJECT_ID;
-  let projectName = "Rede Filosófica";
+  let projectName = "Autenticador";
 
   if (projectId) {
     try {
