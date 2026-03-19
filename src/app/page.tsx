@@ -106,12 +106,12 @@ export default async function Home() {
                   <p className="text-sm text-zinc-500">Acesse seus dados em qualquer navegador com segurança.</p>
                 </div>
 
-                <div className="p-6 bg-zinc-900/50 border border-zinc-800 rounded-2xl hover:border-indigo-500/50 transition-all cursor-pointer group">
+                <div className="p-6 bg-white border border-zinc-200 rounded-2xl hover:border-indigo-500/50 transition-all cursor-pointer group shadow-sm">
                   <div className="flex justify-between items-start mb-4">
-                    <div className="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center">
+                    <div className="w-12 h-12 bg-zinc-50 rounded-xl flex items-center justify-center">
                       <Smartphone className="w-6 h-6 text-indigo-500" />
                     </div>
-                    <span className="text-xs font-bold text-zinc-600 group-hover:text-indigo-500">DISPONÍVEL</span>
+                    <span className="text-xs font-bold text-zinc-500 group-hover:text-indigo-500">DISPONÍVEL</span>
                   </div>
                   <h4 className="font-bold text-lg mb-2">Aplicativo Mobile</h4>
                   <p className="text-sm text-zinc-500">Autenticação rápida via Deep Links e tokens seguros.</p>

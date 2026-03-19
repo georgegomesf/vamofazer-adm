@@ -32,8 +32,8 @@ function SignOutContent() {
     }, [finalCallbackUrl]);
 
     return (
-        <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center text-white p-6 text-center">
-            <Loader2 className="w-10 h-10 animate-spin text-blue-500 mb-4" />
+        <div className="min-h-screen bg-white flex flex-col items-center justify-center text-zinc-950 p-6 text-center">
+            <Loader2 className="w-10 h-10 animate-spin text-emerald-500 mb-4" />
             <p className="text-zinc-500 animate-pulse font-medium text-lg uppercase tracking-widest leading-relaxed">
                 Saindo da conta...
             </p>
