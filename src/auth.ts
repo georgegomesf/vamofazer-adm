@@ -90,6 +90,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 session.user.projectRole = token?.projectRole;
                 // @ts-ignore
                 session.user.image = token?.picture || token?.image;
+                // @ts-ignore
+                session.authToken = token?.token;
             }
             return session;
         },
@@ -101,6 +103,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 token.projectRole = user.projectRole;
                 // @ts-ignore
                 token.image = user.image;
+                // @ts-ignore
+                token.token = user.token;
             }
             return token;
         },

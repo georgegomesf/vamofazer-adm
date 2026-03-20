@@ -54,29 +54,27 @@ export default function PerfilPage() {
   const projectId = process.env.NEXT_PUBLIC_PROJECT_ID;
 
   useEffect(() => {
-    fetchProfile();
-  }, []);
-
-  async function fetchProfile() {
-    try {
-      setLoading(true);
-      const res = await axios.get(`${authServiceUrl}/api/users/me`, {
-        withCredentials: true
+    if (session?.user) {
+      setUser({
+        id: session.user.id as string,
+        name: session.user.name || "",
+        email: session.user.email as string,
+        image: session.user.image as string || null,
+        role: (session.user as any).role || "USER"
       });
-      setUser(res.data);
       setFormData({
-        name: res.data.name || "",
-        email: res.data.email,
+        name: session.user.name || "",
+        email: session.user.email as string || "",
         password: "",
         confirmPassword: ""
       });
-      setAvatarPreview(res.data.image);
-    } catch (error) {
-      console.error("Error fetching profile:", error);
-      setMessage({ type: "error", text: "Erro ao carregar dados do perfil." });
-    } finally {
+      setAvatarPreview(session.user.image as string || null);
       setLoading(false);
     }
+  }, [session]);
+
+  async function fetchProfile() {
+    // This is now handled by the useEffect on session
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -113,9 +111,13 @@ export default function PerfilPage() {
       if (formData.password) data.append("password", formData.password);
       if (avatarFile) data.append("image", avatarFile);
 
+      const authToken = (session as any)?.authToken;
       const res = await axios.patch(`${authServiceUrl}/api/users/me`, data, {
         withCredentials: true,
-        headers: { "Content-Type": "multipart/form-data" }
+        headers: { 
+          "Content-Type": "multipart/form-data",
+          ...(authToken ? { "Authorization": `Bearer ${authToken}` } : {})
+        }
       });
 
       setUser(res.data);
@@ -147,8 +149,14 @@ export default function PerfilPage() {
     setIsSigningOut(true);
 
     try {
+      const authToken = (session as any)?.authToken;
       const url = `${authServiceUrl}/api/users/me?mode=${deleteMode}${deleteMode === 'partial' ? `&projectId=${projectId}` : ''}`;
-      await axios.delete(url, { withCredentials: true });
+      await axios.delete(url, { 
+        withCredentials: true,
+        headers: {
+          ...(authToken ? { "Authorization": `Bearer ${authToken}` } : {})
+        }
+      });
       
       // Logout after deletion
       await signOut({ 
