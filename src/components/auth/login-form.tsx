@@ -29,7 +29,7 @@ export default function LoginForm() {
         setLoading(true);
         // Redirect to the remote auth service for Google login
         const currentOrigin = window.location.origin;
-        const targetCallback = `${currentOrigin}/auth/callback?dest=${encodeURIComponent(callbackUrl)}`;
+        const targetCallback = `${currentOrigin}/auth/callback?dest=${encodeURIComponent(callbackUrl)}${projectId ? `&projectId=${projectId}` : ""}`;
         window.location.href = `${authServiceUrl}/auth/signin?callbackUrl=${encodeURIComponent(targetCallback)}&projectId=${projectId}&autoLogin=google`;
     };
 

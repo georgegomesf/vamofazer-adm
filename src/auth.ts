@@ -33,6 +33,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                             name: res.data.user.name,
                             role: res.data.user.role,
                             // @ts-ignore
+                            projectRole: res.data.user.projectRole,
+                            // @ts-ignore
+                            image: res.data.user.image,
+                            // @ts-ignore
                             token: res.data.token
                         };
                     }
@@ -62,7 +66,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                             id: payload.id as string,
                             email: payload.email as string,
                             name: payload.name as string,
+                            image: payload.image as string,
                             role: payload.role as string,
+                            // @ts-ignore
+                            projectRole: payload.projectRole as string,
                         };
                     }
                 } catch (error) {
@@ -79,6 +86,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 session.user.id = token?.sub;
                 // @ts-ignore
                 session.user.role = token?.role;
+                // @ts-ignore
+                session.user.projectRole = token?.projectRole;
+                // @ts-ignore
+                session.user.image = token?.picture || token?.image;
             }
             return session;
         },
@@ -86,6 +97,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             if (user) {
                 // @ts-ignore
                 token.role = user.role;
+                // @ts-ignore
+                token.projectRole = user.projectRole;
+                // @ts-ignore
+                token.image = user.image;
             }
             return token;
         },
@@ -95,5 +110,34 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
     pages: {
         signIn: "/auth/signin",
+    },
+    cookies: {
+        sessionToken: {
+            name: "redefilosofica-adm.session-token",
+            options: {
+                httpOnly: true,
+                sameSite: "lax",
+                path: "/",
+                secure: process.env.NODE_ENV === "production",
+            },
+        },
+        callbackUrl: {
+            name: "redefilosofica-adm.callback-url",
+            options: {
+                httpOnly: true,
+                sameSite: "lax",
+                path: "/",
+                secure: process.env.NODE_ENV === "production",
+            },
+        },
+        csrfToken: {
+            name: "redefilosofica-adm.csrf-token",
+            options: {
+                httpOnly: true,
+                sameSite: "lax",
+                path: "/",
+                secure: process.env.NODE_ENV === "production",
+            },
+        },
     },
 });

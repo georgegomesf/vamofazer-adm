@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, Suspense } from "react";
+import { useEffect, Suspense, useRef } from "react";
 import { signOut } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
@@ -9,15 +9,23 @@ function SignOutContent() {
     const searchParams = useSearchParams();
     const finalCallbackUrl = searchParams.get("callbackUrl") || "/";
 
+    const isStarted = useRef(false);
     useEffect(() => {
         const performSignOut = async () => {
+            if (isStarted.current) return;
+            isStarted.current = true;
+            
             console.log("AUTH SIGNOUT: Starting process...");
             const authServiceUrl = process.env.NEXT_PUBLIC_AUTH_SERVICE_URL;
 
-            // 1. Limpa a sessão local no web-auth
-            await signOut({
-                redirect: false
-            });
+            try {
+                // 1. Limpa a sessão local no web-auth
+                await signOut({
+                    redirect: false
+                });
+            } catch (err) {
+                console.warn("Local signOut encountered a minor error, continuing with global logout:", err);
+            }
 
             // 2. Redireciona para o logout central para limpar a sessão no @auth também
             if (authServiceUrl) {
