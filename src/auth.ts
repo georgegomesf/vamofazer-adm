@@ -70,6 +70,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                             role: payload.role as string,
                             // @ts-ignore
                             projectRole: payload.projectRole as string,
+                            // @ts-ignore
+                            token: payload.token as string, // Extract the persistent token here!
                         };
                     }
                 } catch (error) {
