@@ -54,7 +54,8 @@ export default function PerfilPage() {
   const projectId = process.env.NEXT_PUBLIC_PROJECT_ID;
 
   useEffect(() => {
-    if (session?.user) {
+    // Only load from session on initial mount or if user state is empty
+    if (session?.user && !user) {
       setUser({
         id: session.user.id as string,
         name: session.user.name || "",
@@ -71,7 +72,7 @@ export default function PerfilPage() {
       setAvatarPreview(session.user.image as string || null);
       setLoading(false);
     }
-  }, [session]);
+  }, [session, user]);
 
   async function fetchProfile() {
     // This is now handled by the useEffect on session
@@ -123,19 +124,20 @@ export default function PerfilPage() {
       setUser(res.data);
       setFormData(prev => ({ ...prev, password: "", confirmPassword: "" }));
       setAvatarFile(null);
-      setMessage({ type: "success", text: "Perfil atualizado com sucesso!" });
       
-      // Update next-auth session
-      await update({
-        ...session,
+      // Update next-auth session in background
+      update({
         user: {
-          ...session?.user,
           name: res.data.name,
           image: res.data.image
         }
-      });
+      }).catch(err => console.error("Session update failed:", err));
 
-      setTimeout(() => setMessage(null), 3000);
+      // Visual feedback
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      setMessage({ type: "success", text: "Perfil atualizado com sucesso!" });
+      
+      setTimeout(() => setMessage(null), 6000);
     } catch (error) {
       console.error("Error updating profile:", error);
       setMessage({ type: "error", text: "Erro ao atualizar perfil." });

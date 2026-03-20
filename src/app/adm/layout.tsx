@@ -23,7 +23,8 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     }
   }, [status, router]);
 
-  if (status === "loading") {
+  // Only show the loading state on initial mount if we don't have a session yet
+  if (status === "loading" && !session) {
     return (
       <div className="flex h-screen items-center justify-center bg-white dark:bg-gray-900">
         <div className="text-gray-500">Carregando...</div>

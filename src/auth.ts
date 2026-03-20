@@ -97,7 +97,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             }
             return session;
         },
-        async jwt({ token, user }) {
+        async jwt({ token, user, trigger, session }) {
             if (user) {
                 // @ts-ignore
                 token.role = user.role;
@@ -107,7 +107,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 token.image = user.image;
                 // @ts-ignore
                 token.token = user.token;
+                // @ts-ignore
+                token.picture = user.image;
             }
+
+            if (trigger === "update" && session?.user) {
+                if (session.user.name) token.name = session.user.name;
+                // @ts-ignore
+                if (session.user.image) token.image = session.user.image;
+                // @ts-ignore
+                if (session.user.image) token.picture = session.user.image;
+            }
+
             return token;
         },
     },
