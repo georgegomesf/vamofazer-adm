@@ -7,7 +7,7 @@ import { useSidebar } from "../context/SidebarContext";
 import { useProject } from "../context/ProjectContext";
 import { useSession } from "next-auth/react";
 import {
-  PieChartIcon,
+  SettingsIcon,
   UserIcon,
 } from "../icons/index";
 
@@ -20,7 +20,7 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   {
-    icon: <PieChartIcon />,
+    icon: <SettingsIcon />,
     name: "Configurações",
     subItems: [
       { name: "Projeto", path: "/adm/projeto" },
@@ -53,8 +53,8 @@ const AppSidebar: React.FC = () => {
           {nav.subItems ? (
             <div
               className={`menu-item group menu-item-inactive ${!isExpanded && !isHovered
-                  ? "lg:justify-center"
-                  : "lg:justify-start"
+                ? "lg:justify-center"
+                : "lg:justify-start"
                 }`}
             >
               <span className="menu-item-icon-inactive">
@@ -73,8 +73,8 @@ const AppSidebar: React.FC = () => {
               >
                 <span
                   className={`${isActive(nav.path)
-                      ? "menu-item-icon-active"
-                      : "menu-item-icon-inactive"
+                    ? "menu-item-icon-active"
+                    : "menu-item-icon-inactive"
                     }`}
                 >
                   {nav.icon}
@@ -93,8 +93,8 @@ const AppSidebar: React.FC = () => {
                     <Link
                       href={subItem.path}
                       className={`menu-dropdown-item ${isActive(subItem.path)
-                          ? "menu-dropdown-item-active"
-                          : "menu-dropdown-item-inactive"
+                        ? "menu-dropdown-item-active"
+                        : "menu-dropdown-item-inactive"
                         }`}
                     >
                       {subItem.name}
@@ -102,8 +102,8 @@ const AppSidebar: React.FC = () => {
                         {subItem.new && (
                           <span
                             className={`ml-auto ${isActive(subItem.path)
-                                ? "menu-dropdown-badge-active"
-                                : "menu-dropdown-badge-inactive"
+                              ? "menu-dropdown-badge-active"
+                              : "menu-dropdown-badge-inactive"
                               } menu-dropdown-badge `}
                           >
                             new
@@ -112,8 +112,8 @@ const AppSidebar: React.FC = () => {
                         {subItem.pro && (
                           <span
                             className={`ml-auto ${isActive(subItem.path)
-                                ? "menu-dropdown-badge-active"
-                                : "menu-dropdown-badge-inactive"
+                              ? "menu-dropdown-badge-active"
+                              : "menu-dropdown-badge-inactive"
                               } menu-dropdown-badge `}
                           >
                             pro
@@ -205,8 +205,8 @@ const AppSidebar: React.FC = () => {
             <div>
               <h2
                 className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${!isExpanded && !isHovered
-                    ? "lg:justify-center"
-                    : "justify-start"
+                  ? "lg:justify-center"
+                  : "justify-start"
                   }`}
               >
                 {isExpanded || isHovered || isMobileOpen ? (
