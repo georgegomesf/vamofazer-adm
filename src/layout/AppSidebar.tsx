@@ -235,7 +235,21 @@ const AppSidebar: React.FC = () => {
                   ""
                 )}
               </h2>
-              {((session?.user as any)?.role === "ADMIN" || (session?.user as any)?.projectRole === "admin") && renderMenuItems(navItems, "main")}
+              {(() => {
+                const userRole = (session?.user as any)?.role;
+                const projectRole = (session?.user as any)?.projectRole;
+                const isAdmin = userRole === "ADMIN" || projectRole === "admin";
+                const isEditor = projectRole === "editor";
+                
+                if (!isAdmin && !isEditor) return null;
+
+                const allowedNavItems = navItems.filter((item) => {
+                  if (item.name === "Configurações") return isAdmin;
+                  return true;
+                });
+
+                return renderMenuItems(allowedNavItems, "main");
+              })()}
             </div>
           </div>
         </nav>

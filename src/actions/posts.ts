@@ -14,7 +14,7 @@ export async function getPosts(projectId: string) {
           include: { tag: true },
         },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
     });
     return posts;
   } catch (error) {

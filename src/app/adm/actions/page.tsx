@@ -6,11 +6,14 @@ import { Plus, Search, Calendar, Edit, Trash2, Loader2, Clock, CheckCircle2, Lis
 import Button from "@/components/ui/button/Button";
 import { getActions, deleteAction } from "@/actions/actions";
 import DeleteModal from "@/components/admin/content/DeleteModal";
+import Pagination from "@/components/ui/pagination/Pagination";
 
 export default function ActionsPage() {
   const [search, setSearch] = useState("");
   const [actions, setActions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -40,6 +43,15 @@ export default function ActionsPage() {
     a.title.toLowerCase().includes(search.toLowerCase()) ||
     a.type.toLowerCase().includes(search.toLowerCase())
   );
+
+  const paginatedActions = filteredActions.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
 
   const getActionIcon = (type: string) => {
     switch (type) {
@@ -83,14 +95,14 @@ export default function ActionsPage() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full whitespace-nowrap text-left text-sm">
+          <table className="w-full text-left text-sm">
             <thead className="bg-gray-50 text-gray-600 dark:bg-gray-800/50 dark:text-gray-400">
               <tr>
-                <th className="px-6 py-4 font-medium">Ação</th>
+                <th className="px-6 py-4 font-medium min-w-[240px]">Ação</th>
                 <th className="px-6 py-4 font-medium">Tipo</th>
                 <th className="px-6 py-4 font-medium">Data/Hora</th>
-                <th className="px-6 py-4 font-medium">Vínculos</th>
-                <th className="px-6 py-4 font-medium text-right">Ações</th>
+                <th className="px-6 py-4 font-medium text-center">Vínculos</th>
+                <th className="px-6 py-4 font-medium text-right w-20">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
@@ -101,21 +113,23 @@ export default function ActionsPage() {
                     Carregando ações...
                   </td>
                 </tr>
-              ) : filteredActions.map((action) => (
+              ) : paginatedActions.map((action) => (
                 <tr key={action.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="h-12 w-12 flex-shrink-0 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center overflow-hidden">
+                      <div className="h-10 w-10 flex-shrink-0 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center overflow-hidden">
                         {action.imageUrl ? (
                           <img src={action.imageUrl} className="h-full w-full object-cover" />
                         ) : (
                           getActionIcon(action.type)
                         )}
                       </div>
-                      <div className="font-medium text-gray-900 dark:text-white max-w-xs truncate">{action.title}</div>
+                      <div className="font-medium text-gray-900 dark:text-white max-w-[160px] md:max-w-xs lg:max-w-sm truncate" title={action.title}>
+                        {action.title}
+                      </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
                       ${action.type === 'Evento' ? 'bg-blue-100 text-blue-800 dark:bg-blue-500/10 dark:text-blue-300' : 
                         action.type === 'Prazo' ? 'bg-red-100 text-red-800 dark:bg-red-500/10 dark:text-red-300' : 
@@ -123,7 +137,7 @@ export default function ActionsPage() {
                       {action.type}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-gray-500">
+                  <td className="px-6 py-4 text-gray-500 whitespace-nowrap">
                     <div className="flex flex-col text-xs">
                       {action.startDate && (
                         <span className="flex items-center gap-1">
@@ -140,8 +154,8 @@ export default function ActionsPage() {
                       {!action.startDate && !action.endDate && <span className="text-gray-400 italic">Sem data</span>}
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-gray-600 dark:text-gray-400">
-                    <span className="font-medium">{action._count?.posts || 0}</span>
+                  <td className="px-6 py-4 text-gray-600 dark:text-gray-400 whitespace-nowrap text-center">
+                    <span className="font-medium text-xs bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full">{action._count?.posts || 0}</span>
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
@@ -165,6 +179,15 @@ export default function ActionsPage() {
             </div>
           )}
         </div>
+
+        {!loading && filteredActions.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalItems={filteredActions.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+          />
+        )}
       </div>
 
       <DeleteModal

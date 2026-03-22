@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, Save, Loader2, Calendar, Clock, ListTodo, Type } from "lucide-react";
+import { X, Save, Loader2, Calendar, Clock, ListTodo, Type, Building2, Globe } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import Button from "@/components/ui/button/Button";
 import { createAction } from "@/actions/actions";
@@ -21,6 +21,8 @@ export default function QuickActionModal({ isOpen, onClose, onSuccess, allAction
     title: "",
     type: "Atividade",
     description: "",
+    organizer: "",
+    url: "",
     startDate: "",
     endDate: "",
   });
@@ -42,7 +44,7 @@ export default function QuickActionModal({ isOpen, onClose, onSuccess, allAction
       if (result.success) {
         onSuccess(result.action.id, result.action.type);
         onClose();
-        setFormData({ title: "", type: "Atividade", description: "", startDate: "", endDate: "" });
+        setFormData({ title: "", type: "Atividade", description: "", organizer: "", url: "", startDate: "", endDate: "" });
       } else {
         alert("Erro ao salvar ação: " + result.error);
       }
@@ -106,7 +108,15 @@ export default function QuickActionModal({ isOpen, onClose, onSuccess, allAction
                   {getActionIcon(action.type)}
                   <span className="font-bold text-sm text-gray-900 dark:text-white">{action.title}</span>
                 </div>
-                <span className="text-[10px] text-gray-500 uppercase tracking-tight ml-6">{action.type}</span>
+                <div className="flex items-center gap-2 ml-6 text-[10px] text-gray-500 uppercase tracking-tight">
+                    <span>{action.type}</span>
+                    {action.organizer && (
+                        <>
+                            <span>•</span>
+                            <span>{action.organizer}</span>
+                        </>
+                    )}
+                </div>
               </button>
             ))}
             {availableActions.length === 0 && (
@@ -143,6 +153,34 @@ export default function QuickActionModal({ isOpen, onClose, onSuccess, allAction
                 <option value="Evento">Evento</option>
                 <option value="Prazo">Prazo</option>
               </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Organizador</label>
+              <div className="relative">
+                <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input
+                    type="text"
+                    name="organizer"
+                    value={formData.organizer}
+                    onChange={handleInputChange}
+                    className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none transition-all dark:bg-gray-800 dark:border-gray-700 dark:text-white text-xs"
+                />
+              </div>
+            </div>
+
+            <div className="col-span-2 space-y-2">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Link / URL</label>
+              <div className="relative">
+                <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input
+                    type="url"
+                    name="url"
+                    value={formData.url}
+                    onChange={handleInputChange}
+                    className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none transition-all dark:bg-gray-800 dark:border-gray-700 dark:text-white text-xs"
+                />
+              </div>
             </div>
 
             <div className="space-y-2">

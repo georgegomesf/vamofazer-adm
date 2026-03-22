@@ -6,11 +6,14 @@ import Button from "@/components/ui/button/Button";
 import { getMenuItems, deleteMenuItem } from "@/actions/menu";
 import MenuItemModal from "@/components/admin/content/MenuItemModal";
 import DeleteModal from "@/components/admin/content/DeleteModal";
+import Pagination from "@/components/ui/pagination/Pagination";
 
 export default function MainMenuPage() {
   const [search, setSearch] = useState("");
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [parentId, setParentId] = useState<string | null>(null);
@@ -55,6 +58,15 @@ export default function MainMenuPage() {
     i.title.toLowerCase().includes(search.toLowerCase())
   );
 
+  const paginatedItems = filteredItems.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
   return (
     <div className="mx-auto max-w-6xl space-y-6 pb-12">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -82,14 +94,14 @@ export default function MainMenuPage() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full whitespace-nowrap text-left text-sm">
+          <table className="w-full text-left text-sm">
             <thead className="bg-gray-50 text-gray-600 dark:bg-gray-800/50 dark:text-gray-400">
               <tr>
                 <th className="w-12 px-6 py-4"></th>
-                <th className="px-6 py-4 font-medium">Título do Item</th>
+                <th className="px-6 py-4 font-medium min-w-[200px]">Título do Item</th>
                 <th className="px-6 py-4 font-medium">Tipo</th>
                 <th className="px-6 py-4 font-medium">Destino</th>
-                <th className="px-6 py-4 font-medium text-right">Ações</th>
+                <th className="px-6 py-4 font-medium text-right w-28">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
@@ -100,9 +112,9 @@ export default function MainMenuPage() {
                     Carregando menus...
                   </td>
                 </tr>
-              ) : filteredItems.map((item) => (
+              ) : paginatedItems.map((item) => (
                 <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group">
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4 whitespace-nowrap">
                     <button className="text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing">
                       <GripVertical className="h-4 w-4" />
                     </button>
@@ -112,35 +124,35 @@ export default function MainMenuPage() {
                       {item.type === "subitem" && (
                         <div className="w-4 h-px bg-gray-300 dark:bg-gray-700 ml-2" />
                       )}
-                      <div className={`flex items-center gap-2 ${item.type === 'subitem' ? 'text-gray-600 dark:text-gray-400' : 'text-gray-900 dark:text-white font-medium'}`}>
-                        {item.type === "item" ? <MenuIcon className="h-4 w-4 text-gray-400" /> : <Layers className="h-3 w-3 text-gray-300" />}
-                        {item.title}
+                      <div className={`flex items-center gap-2 max-w-[180px] md:max-w-xs ${item.type === 'subitem' ? 'text-gray-600 dark:text-gray-400' : 'text-gray-900 dark:text-white font-medium'}`}>
+                        {item.type === "item" ? <MenuIcon className="h-4 w-4 text-gray-400 flex-shrink-0" /> : <Layers className="h-3 w-3 text-gray-300 flex-shrink-0" />}
+                        <span className="truncate" title={item.title}>{item.title}</span>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4 whitespace-nowrap">
                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 shadow-sm">
                       {item.type === 'item' ? 'Menu Principal' : 'Subitem'}
                     </span>
                   </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-sm">
-                      <LinkIcon className="h-3.5 w-3.5" />
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-sm max-w-[200px] md:max-w-[300px]">
+                      <LinkIcon className="h-3.5 w-3.5 flex-shrink-0" />
                       {item.url ? (
-                        <span className="truncate max-w-[200px]">{item.url}</span>
+                        <span className="truncate" title={item.url}>{item.url}</span>
                       ) : item.category ? (
-                        <span className="flex items-center gap-1 text-blue-600 dark:text-blue-400">
-                          <Layers className="h-3 w-3" /> Categoria: {item.category.title}
+                        <span className="flex items-center gap-1 text-blue-600 dark:text-blue-400 truncate" title={`Categoria: ${item.category.title}`}>
+                          <Layers className="h-3 w-3 flex-shrink-0" /> {item.category.title}
                         </span>
                       ) : item.post ? (
-                        <span className="flex items-center gap-1 text-brand-600 dark:text-brand-400">
-                          <FileText className="h-3 w-3" /> Postagem: {item.post.title}
+                        <span className="flex items-center gap-1 text-brand-600 dark:text-brand-400 truncate" title={`Postagem: ${item.post.title}`}>
+                          <FileText className="h-3 w-3 flex-shrink-0" /> {item.post.title}
                         </span>
                       ) : "-"}
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center justify-end gap-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                       {item.type === 'item' && (
                         <button onClick={() => handleAdd(item.id)} className="p-2 text-gray-400 hover:text-brand-500 transition-colors" title="Adicionar Subitem">
                           <Plus className="h-4 w-4" />
@@ -164,6 +176,15 @@ export default function MainMenuPage() {
             </div>
           )}
         </div>
+
+        {!loading && filteredItems.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalItems={filteredItems.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+          />
+        )}
       </div>
 
       <MenuItemModal 

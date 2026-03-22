@@ -2,15 +2,19 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Plus, Search, FileText, Image as ImageIcon, Calendar, Edit, Trash2, Loader2 } from "lucide-react";
+import { Plus, Search, FileText, Calendar, Edit, Trash2, Loader2, Filter } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import { getPosts, deletePost } from "@/actions/posts";
 import DeleteModal from "@/components/admin/content/DeleteModal";
+import Pagination from "@/components/ui/pagination/Pagination";
 
 export default function PostsPage() {
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -36,10 +40,26 @@ export default function PostsPage() {
     setDeleteId(null);
   }
 
-  const filteredPosts = posts.filter(p =>
-    p.title.toLowerCase().includes(search.toLowerCase()) ||
-    p.slug.toLowerCase().includes(search.toLowerCase())
+  const filteredPosts = posts.filter(p => {
+    const matchesSearch = p.title.toLowerCase().includes(search.toLowerCase()) ||
+                          p.slug.toLowerCase().includes(search.toLowerCase());
+                          
+    let matchesStatus = true;
+    if (statusFilter === "published") matchesStatus = !!p.publishedAt;
+    if (statusFilter === "draft") matchesStatus = !p.publishedAt;
+    
+    return matchesSearch && matchesStatus;
+  });
+
+  const paginatedPosts = filteredPosts.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
   );
+
+  // Reset page when filtering
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, statusFilter]);
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 pb-12">
@@ -56,7 +76,7 @@ export default function PostsPage() {
       </div>
 
       <div className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
-        <div className="p-4 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center">
+        <div className="p-4 border-b border-gray-200 dark:border-gray-800 flex flex-col sm:flex-row gap-4 justify-between items-center">
           <div className="relative max-w-md w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
@@ -64,20 +84,33 @@ export default function PostsPage() {
               placeholder="Buscar pelo título ou slug..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none transition-all dark:bg-gray-800/50 dark:border-gray-700 dark:text-white"
+              className="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none transition-all dark:bg-gray-800/50 dark:border-gray-700 dark:text-white text-sm"
             />
+          </div>
+          
+          <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+            <Filter className="h-4 w-4 text-gray-400 hidden sm:block" />
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="w-full sm:w-auto px-4 py-2 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none transition-all dark:bg-gray-800/50 dark:border-gray-700 dark:text-white text-sm"
+            >
+              <option value="all">Todos os Status</option>
+              <option value="published">Publicados</option>
+              <option value="draft">Rascunhos</option>
+            </select>
           </div>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full whitespace-nowrap text-left text-sm">
+          <table className="w-full text-left text-sm">
             <thead className="bg-gray-50 text-gray-600 dark:bg-gray-800/50 dark:text-gray-400">
               <tr>
-                <th className="px-6 py-4 font-medium">Postagem</th>
+                <th className="px-6 py-4 font-medium min-w-[240px]">Postagem</th>
                 <th className="px-6 py-4 font-medium">Categoria / Tags</th>
                 <th className="px-6 py-4 font-medium">Status</th>
                 <th className="px-6 py-4 font-medium">Publicação</th>
-                <th className="px-6 py-4 font-medium text-right">Ações</th>
+                <th className="px-6 py-4 font-medium text-right w-20">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
@@ -88,7 +121,7 @@ export default function PostsPage() {
                     Carregando postagens...
                   </td>
                 </tr>
-              ) : filteredPosts.map((post) => (
+              ) : paginatedPosts.map((post) => (
                 <tr key={post.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
@@ -99,23 +132,27 @@ export default function PostsPage() {
                           <FileText className="h-5 w-5 text-gray-400" />
                         )}
                       </div>
-                      <div>
-                        <div className="font-medium text-gray-900 dark:text-white">{post.title}</div>
-                        <div className="text-sm text-gray-500">{post.slug}</div>
+                      <div className="max-w-[160px] md:max-w-xs lg:max-w-sm">
+                        <div className="font-medium text-gray-900 dark:text-white truncate" title={post.title}>{post.title}</div>
+                        <div className="text-sm text-gray-500 truncate font-mono text-[10px]" title={post.slug}>{post.slug}</div>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="text-gray-900 dark:text-gray-300">{post.category?.title || "-"}</div>
-                    <div className="flex gap-1 mt-1">
-                      {post.tags?.map((pt: any) => (
-                        <span key={pt.tag.id} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400">
-                          {pt.tag.title}
-                        </span>
-                      ))}
+                    <div className="max-w-[140px]">
+                      <div className="text-gray-900 dark:text-gray-300 truncate font-medium text-xs" title={post.category?.title || "-"}>
+                        {post.category?.title || "-"}
+                      </div>
+                      <div className="flex flex-wrap gap-0.5 mt-1">
+                        {post.tags?.map((pt: any) => (
+                          <span key={pt.tag.id} className="inline-flex items-center px-1 py-0.5 rounded text-[9px] font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+                            {pt.tag.title}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${post.publishedAt
                         ? 'bg-green-100 text-green-800 dark:bg-green-500/10 dark:text-green-400'
                         : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-500/10 dark:text-yellow-400'
@@ -123,7 +160,7 @@ export default function PostsPage() {
                       {post.publishedAt ? "Publicado" : "Rascunho"}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-gray-500">
+                  <td className="px-6 py-4 text-gray-500 whitespace-nowrap">
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4" />
                       {post.publishedAt ? new Date(post.publishedAt).toLocaleDateString("pt-BR") : "-"}
@@ -151,6 +188,15 @@ export default function PostsPage() {
             </div>
           )}
         </div>
+
+        {!loading && filteredPosts.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalItems={filteredPosts.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+          />
+        )}
       </div>
 
       <DeleteModal

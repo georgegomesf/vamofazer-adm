@@ -1,16 +1,19 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Plus, Search, Folder, ImageIcon, Edit, Trash2, Loader2 } from "lucide-react";
+import { Plus, Search, Folder, Edit, Trash2, Loader2 } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import { getCategories, deleteCategory } from "@/actions/categories";
 import CategoryModal from "@/components/admin/content/CategoryModal";
 import DeleteModal from "@/components/admin/content/DeleteModal";
+import Pagination from "@/components/ui/pagination/Pagination";
 
 export default function CategoriesPage() {
   const [search, setSearch] = useState("");
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<any>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -53,6 +56,15 @@ export default function CategoriesPage() {
     c.slug.toLowerCase().includes(search.toLowerCase())
   );
 
+  const paginatedCategories = filteredCategories.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
   return (
     <div className="mx-auto max-w-6xl space-y-6 pb-12">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -80,13 +92,13 @@ export default function CategoriesPage() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full whitespace-nowrap text-left text-sm">
+          <table className="w-full text-left text-sm">
             <thead className="bg-gray-50 text-gray-600 dark:bg-gray-800/50 dark:text-gray-400">
               <tr>
-                <th className="px-6 py-4 font-medium">Categoria</th>
+                <th className="px-6 py-4 font-medium min-w-[200px]">Categoria</th>
                 <th className="px-6 py-4 font-medium">Descrição</th>
                 <th className="px-6 py-4 font-medium">Postagens</th>
-                <th className="px-6 py-4 font-medium text-right">Ações</th>
+                <th className="px-6 py-4 font-medium text-right w-20">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
@@ -97,25 +109,25 @@ export default function CategoriesPage() {
                     Carregando categorias...
                   </td>
                 </tr>
-              ) : filteredCategories.map((category) => (
+              ) : paginatedCategories.map((category) => (
                 <tr key={category.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 flex-shrink-0 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                      <div className="h-10 w-10 flex-shrink-0 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center font-mono">
                         <Folder className="h-5 w-5 text-gray-400" />
                       </div>
-                      <div>
-                        <div className="font-medium text-gray-900 dark:text-white">{category.title}</div>
-                        <div className="text-sm text-gray-500">{category.slug}</div>
+                      <div className="max-w-[160px] md:max-w-xs lg:max-w-sm">
+                        <div className="font-medium text-gray-900 dark:text-white truncate" title={category.title}>{category.title}</div>
+                        <div className="text-xs text-gray-500 truncate font-mono" title={category.slug}>{category.slug}</div>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="text-gray-600 dark:text-gray-400 truncate max-w-[300px]" title={category.description || ""}>
+                    <div className="text-gray-600 dark:text-gray-400 truncate max-w-[200px] md:max-w-[300px]" title={category.description || ""}>
                       {category.description || "-"}
                     </div>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4 whitespace-nowrap text-center">
                     <span className="inline-flex items-center justify-center min-w-[32px] px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300">
                       {category._count?.posts || 0}
                     </span>
@@ -140,6 +152,15 @@ export default function CategoriesPage() {
             </div>
           )}
         </div>
+
+        {!loading && filteredCategories.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalItems={filteredCategories.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+          />
+        )}
       </div>
 
       <CategoryModal 

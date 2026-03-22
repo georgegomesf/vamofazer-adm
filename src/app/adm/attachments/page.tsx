@@ -6,11 +6,14 @@ import { Plus, Search, Link as LinkIcon, Youtube, Instagram, HardDrive, FileText
 import Button from "@/components/ui/button/Button";
 import { getAttachments, deleteAttachment } from "@/actions/attachments";
 import DeleteModal from "@/components/admin/content/DeleteModal";
+import Pagination from "@/components/ui/pagination/Pagination";
 
 export default function AttachmentsPage() {
   const [search, setSearch] = useState("");
   const [attachments, setAttachments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -41,6 +44,15 @@ export default function AttachmentsPage() {
     a.url.toLowerCase().includes(search.toLowerCase()) ||
     a.type.toLowerCase().includes(search.toLowerCase())
   );
+
+  const paginatedAttachments = filteredAttachments.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
 
   const getAttachmentIcon = (type: string) => {
     switch (type) {
@@ -89,14 +101,14 @@ export default function AttachmentsPage() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full whitespace-nowrap text-left text-sm">
+          <table className="w-full text-left text-sm">
             <thead className="bg-gray-50 text-gray-600 dark:bg-gray-800/50 dark:text-gray-400">
               <tr>
-                <th className="px-6 py-4 font-medium">Anexo</th>
+                <th className="px-6 py-4 font-medium min-w-[200px]">Anexo</th>
                 <th className="px-6 py-4 font-medium">Tipo</th>
-                <th className="px-6 py-4 font-medium">Vínculos</th>
+                <th className="px-6 py-4 font-medium text-center">Vínculos</th>
                 <th className="px-6 py-4 font-medium">URL</th>
-                <th className="px-6 py-4 font-medium text-right">Ações</th>
+                <th className="px-6 py-4 font-medium text-right w-20">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
@@ -107,23 +119,25 @@ export default function AttachmentsPage() {
                     Carregando anexos...
                   </td>
                 </tr>
-              ) : filteredAttachments.map((attachment) => (
+              ) : paginatedAttachments.map((attachment) => (
                 <tr key={attachment.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="h-10 w-10 flex-shrink-0 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
                         {getAttachmentIcon(attachment.type)}
                       </div>
-                      <div className="font-medium text-gray-900 dark:text-white">{attachment.title}</div>
+                      <div className="font-medium text-gray-900 dark:text-white max-w-[160px] md:max-w-xs lg:max-w-sm truncate" title={attachment.title}>
+                        {attachment.title}
+                      </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4 whitespace-nowrap">
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300">
                       {attachment.type}
                     </span>
                   </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                  <td className="px-6 py-4 whitespace-nowrap text-center">
+                    <div className="flex items-center justify-center gap-2 text-gray-600 dark:text-gray-400">
                       <FileText className="h-4 w-4" />
                       <span className="font-medium">{attachment._count?.posts || 0}</span>
                     </div>
@@ -133,7 +147,8 @@ export default function AttachmentsPage() {
                       href={attachment.url} 
                       target="_blank" 
                       rel="noopener noreferrer" 
-                      className="flex items-center gap-1 hover:text-brand-500 transition-colors max-w-xs truncate"
+                      className="flex items-center gap-1 hover:text-brand-500 transition-colors max-w-[150px] md:max-w-[200px] truncate"
+                      title={attachment.url}
                     >
                       {attachment.url}
                       <ExternalLink className="h-3 w-3" />
@@ -161,6 +176,15 @@ export default function AttachmentsPage() {
             </div>
           )}
         </div>
+
+        {!loading && filteredAttachments.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalItems={filteredAttachments.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+          />
+        )}
       </div>
 
       <DeleteModal

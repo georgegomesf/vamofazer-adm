@@ -6,7 +6,6 @@ import axios from "axios";
 import {
   Plus,
   Search,
-  MoreVertical,
   Pencil,
   Trash2,
   UserPlus,
@@ -28,6 +27,7 @@ import {
 } from "@/components/ui/table";
 import { Modal } from "@/components/ui/modal";
 import Badge from "@/components/ui/badge/Badge";
+import Pagination from "@/components/ui/pagination/Pagination";
 
 interface ProjectUser {
   id: string;
@@ -51,6 +51,8 @@ export default function UsuariosPage() {
   const [users, setUsers] = useState<ProjectUser[]>([]);
   const [search, setSearch] = useState("");
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -182,6 +184,15 @@ export default function UsuariosPage() {
     user.email.toLowerCase().includes(search.toLowerCase())
   );
 
+  const paginatedUsers = filteredUsers.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
   const getRoleBadge = (role: string) => {
     const option = roleOptions.find(o => o.value === role.toLowerCase()) || roleOptions[2];
     return (
@@ -226,7 +237,7 @@ export default function UsuariosPage() {
       )}
 
       {/* Users Table */}
-      <div className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900 overflow-hidden">
+      <div className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
         <div className="p-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50">
           <div className="relative max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -250,14 +261,21 @@ export default function UsuariosPage() {
               </TableRow>
             </TableHeader>
             <TableBody className="divide-y divide-gray-100 dark:divide-gray-800">
-              {filteredUsers.length === 0 ? (
+              {loading ? (
+                <TableRow>
+                  <TableCell className="px-6 py-12 text-center text-gray-500" colSpan={3}>
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2 text-brand-500" />
+                    Carregando usuários...
+                  </TableCell>
+                </TableRow>
+              ) : paginatedUsers.length === 0 ? (
                 <TableRow>
                   <TableCell className="px-6 py-12 text-center text-gray-500 dark:text-gray-400" colSpan={3}>
                     Nenhum usuário encontrado.
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredUsers.map((user) => (
+                paginatedUsers.map((user) => (
                   <TableRow key={user.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors">
                     <TableCell className="px-6 py-4">
                       <div className="flex items-center gap-3">
@@ -301,6 +319,15 @@ export default function UsuariosPage() {
             </TableBody>
           </Table>
         </div>
+
+        {!loading && filteredUsers.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalItems={filteredUsers.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+          />
+        )}
       </div>
 
       {/* Create/Edit Modal */}

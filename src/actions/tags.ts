@@ -11,7 +11,7 @@ export async function getTags(projectId: string) {
           select: { posts: true }
         }
       },
-      orderBy: { title: "asc" },
+      orderBy: { createdAt: "desc" },
     });
     return tags;
   } catch (error) {

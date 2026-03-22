@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Save, Loader2, ChevronLeft, Calendar, ImageIcon, Trash2, Type } from "lucide-react";
+import { Save, Loader2, ChevronLeft, Calendar, ImageIcon, Trash2, Type, Building2, Globe } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Button from "@/components/ui/button/Button";
 import { createAction, updateAction } from "@/actions/actions";
@@ -21,6 +21,8 @@ export default function ActionEditor({ action }: ActionEditorProps) {
     description: "",
     type: "Atividade",
     imageUrl: "",
+    organizer: "",
+    url: "",
     startDate: "",
     endDate: "",
   });
@@ -34,6 +36,8 @@ export default function ActionEditor({ action }: ActionEditorProps) {
         description: action.description || "",
         type: action.type || "Atividade",
         imageUrl: action.imageUrl || "",
+        organizer: action.organizer || "",
+        url: action.url || "",
         startDate: action.startDate ? new Date(action.startDate).toISOString().slice(0, 16) : "",
         endDate: action.endDate ? new Date(action.endDate).toISOString().slice(0, 16) : "",
       });
@@ -51,9 +55,9 @@ export default function ActionEditor({ action }: ActionEditorProps) {
 
     setIsUploading(true);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const result = await uploadImage(formData);
+      const form = new FormData();
+      form.append("file", file);
+      const result = await uploadImage(form);
       setFormData(prev => ({ ...prev, imageUrl: result.url }));
     } catch (error) {
       console.error("Error uploading image:", error);
@@ -147,6 +151,36 @@ export default function ActionEditor({ action }: ActionEditorProps) {
                   placeholder="Descreva os detalhes desta ação..."
                   className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none transition-all dark:bg-gray-800 dark:border-gray-700 dark:text-white resize-none"
                 />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                    <Building2 className="h-4 w-4 text-gray-400" /> Organizador
+                  </label>
+                  <input
+                    type="text"
+                    name="organizer"
+                    value={formData.organizer}
+                    onChange={handleInputChange}
+                    placeholder="Ex: PPGFil-UFRRJ"
+                    className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none transition-all dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                    <Globe className="h-4 w-4 text-gray-400" /> Link / URL
+                  </label>
+                  <input
+                    type="url"
+                    name="url"
+                    value={formData.url}
+                    onChange={handleInputChange}
+                    placeholder="https://..."
+                    className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none transition-all dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">

@@ -12,7 +12,7 @@ export async function getCategories(projectId: string) {
           select: { posts: true }
         }
       },
-      orderBy: { title: "asc" },
+      orderBy: { createdAt: "desc" },
     });
     return categories;
   } catch (error) {
