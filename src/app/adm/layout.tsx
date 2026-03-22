@@ -16,6 +16,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   const { isExpanded, isHovered, isMobileOpen } = useSidebar();
   const { data: session, status } = useSession();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -39,7 +40,6 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   const isAdmin = userRole === "ADMIN" || projectRole === "admin";
   const isEditor = projectRole === "editor";
   const hasAccess = isAdmin || isEditor;
-  const pathname = usePathname();
 
   const isAdminRoute = pathname?.startsWith("/adm/projeto") || pathname?.startsWith("/adm/usuarios");
 

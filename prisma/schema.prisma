@@ -58,15 +58,13 @@ model Project {
   createdAt         DateTime      @default(now())
   updatedAt         DateTime
   defaultEntryRole  String        @default("visitor")
+  Action            Action[]
+  Attachment        Attachment[]
+  Category          Category[]
+  MainMenu          MainMenu[]
+  Post              Post[]
+  Tag               Tag[]
   UserProject       UserProject[]
-
-  // Content Relations
-  Post     Post[]
-  Category Category[]
-  Tag      Tag[]
-  MainMenu MainMenu[]
-  Attachment Attachment[]
-  Action   Action[]
 }
 
 model Session {
@@ -89,12 +87,10 @@ model User {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime
   Account       Account[]
+  AuthoredPosts Post[]        @relation("PostAuthor")
+  EditedPosts   Post[]        @relation("PostEditor")
   Session       Session[]
   UserProject   UserProject[]
-
-  // Content Relations
-  AuthoredPosts Post[] @relation("PostAuthor")
-  EditedPosts   Post[] @relation("PostEditor")
 }
 
 model UserProject {
@@ -116,174 +112,139 @@ model VerificationToken {
   @@id([identifier, token])
 }
 
+model Post {
+  id          String           @id @default(cuid())
+  title       String
+  slug        String           @unique
+  summary     String?
+  content     String?
+  imageUrl    String?
+  categoryId  String?
+  projectId   String
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  publishedAt DateTime?
+  createdBy   String?
+  updatedBy   String?
+  menuItems   MenuItem[]
+  category    Category?        @relation(fields: [categoryId], references: [id])
+  author      User?            @relation("PostAuthor", fields: [createdBy], references: [id])
+  project     Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  editor      User?            @relation("PostEditor", fields: [updatedBy], references: [id])
+  actions     PostAction[]
+  attachments PostAttachment[]
+  tags        PostTag[]
+}
+
+model Category {
+  id          String     @id @default(cuid())
+  title       String
+  slug        String     @unique
+  description String?
+  imageUrl    String?
+  projectId   String
+  createdAt   DateTime   @default(now())
+  project     Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  menuItems   MenuItem[]
+  posts       Post[]
+}
+
+model Tag {
+  id        String    @id @default(cuid())
+  title     String
+  slug      String    @unique
+  projectId String
+  createdAt DateTime  @default(now())
+  posts     PostTag[]
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model PostTag {
+  postId String
+  tagId  String
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tagId])
+}
+
+model MainMenu {
+  id        String     @id @default(cuid())
+  title     String
+  projectId String
+  createdAt DateTime   @default(now())
+  project   Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  items     MenuItem[]
+}
+
+model MenuItem {
+  id         String     @id @default(cuid())
+  title      String
+  url        String?
+  order      Int        @default(0)
+  type       String
+  menuId     String
+  parentId   String?
+  categoryId String?
+  postId     String?
+  createdAt  DateTime   @default(now())
+  category   Category?  @relation(fields: [categoryId], references: [id])
+  menu       MainMenu   @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  parent     MenuItem?  @relation("SubItems", fields: [parentId], references: [id], onDelete: Cascade)
+  subItems   MenuItem[] @relation("SubItems")
+  post       Post?      @relation(fields: [postId], references: [id])
+}
+
+model Attachment {
+  id        String           @id @default(cuid())
+  title     String
+  url       String
+  type      String
+  projectId String
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  project   Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  posts     PostAttachment[]
+}
+
+model PostAttachment {
+  postId       String
+  attachmentId String
+  attachment   Attachment @relation(fields: [attachmentId], references: [id], onDelete: Cascade)
+  post         Post       @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@id([postId, attachmentId])
+}
+
+model Action {
+  id          String       @id @default(cuid())
+  title       String
+  description String?
+  imageUrl    String?
+  type        String
+  startDate   DateTime?
+  endDate     DateTime?
+  projectId   String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  organizer   String?
+  url         String?
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  posts       PostAction[]
+}
+
+model PostAction {
+  postId   String
+  actionId String
+  action   Action @relation(fields: [actionId], references: [id], onDelete: Cascade)
+  post     Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@id([postId, actionId])
+}
+
 enum UserRole {
   ADMIN
   USER
   VISITOR
   BLOCKED
 }
-
-// ----------------------------------------------------------------------------
-// CONTENT MANAGEMENT MODELS
-// ----------------------------------------------------------------------------
-
-model Post {
-  id          String    @id @default(cuid())
-  title       String
-  slug        String    @unique
-  summary     String?   @db.Text
-  content     String?   @db.Text
-  imageUrl    String?
-  
-  category    Category? @relation(fields: [categoryId], references: [id])
-  categoryId  String?
-
-  tags        PostTag[]
-
-  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  projectId   String
-
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  publishedAt DateTime?
-
-  createdBy   String?
-  updatedBy   String?
-  author      User?     @relation("PostAuthor", fields: [createdBy], references: [id])
-  editor      User?     @relation("PostEditor", fields: [updatedBy], references: [id])
-
-  menuItems   MenuItem[]
-  attachments PostAttachment[]
-  actions     PostAction[]
-}
-
-model Category {
-  id          String   @id @default(cuid())
-  title       String
-  slug        String   @unique
-  description String?  @db.Text
-  imageUrl    String?
-
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  projectId   String
-
-  posts       Post[]
-  menuItems   MenuItem[]
-
-  createdAt   DateTime @default(now())
-}
-
-model Tag {
-  id          String   @id @default(cuid())
-  title       String
-  slug        String   @unique
-
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  projectId   String
-
-  posts       PostTag[]
-
-  createdAt   DateTime @default(now())
-}
-
-model PostTag {
-  postId      String
-  tagId       String
-
-  post        Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
-  tag         Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
-
-  @@id([postId, tagId])
-}
-
-model MainMenu {
-  id          String   @id @default(cuid())
-  title       String
-
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  projectId   String
-
-  items       MenuItem[]
-
-  createdAt   DateTime @default(now())
-}
-
-model MenuItem {
-  id          String   @id @default(cuid())
-  title       String
-  url         String?
-  order       Int      @default(0)
-  type        String   // "item" ou "subitem"
-
-  menu        MainMenu @relation(fields: [menuId], references: [id], onDelete: Cascade)
-  menuId      String
-
-  parent      MenuItem?  @relation("SubItems", fields: [parentId], references: [id], onDelete: Cascade)
-  parentId    String?
-  subItems    MenuItem[] @relation("SubItems")
-
-  category    Category? @relation(fields: [categoryId], references: [id])
-  categoryId  String?
-
-  post        Post?     @relation(fields: [postId], references: [id])
-  postId      String?
-
-  createdAt   DateTime @default(now())
-}
-
-model Attachment {
-  id          String   @id @default(cuid())
-  title       String
-  url         String
-  type        String   // Youtube Video, Youtube Channel, Instagram Profile, Instagram Post, Google Drive Folder, Google Drive File, PDF File
-  
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  projectId   String
-
-  posts       PostAttachment[]
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-model PostAttachment {
-  postId       String
-  attachmentId String
-
-  post         Post       @relation(fields: [postId], references: [id], onDelete: Cascade)
-  attachment   Attachment @relation(fields: [attachmentId], references: [id], onDelete: Cascade)
-
-  @@id([postId, attachmentId])
-}
-
-model Action {
-  id          String   @id @default(cuid())
-  title       String
-  description String?  @db.Text
-  imageUrl    String?
-  type        String   // Evento, Prazo, Atividade
-  organizer   String?
-  url         String?
-  startDate   DateTime?
-  endDate     DateTime?
-  
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  projectId   String
-
-  posts       PostAction[]
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-model PostAction {
-  postId      String
-  actionId    String
-
-  post        Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
-  action      Action   @relation(fields: [actionId], references: [id], onDelete: Cascade)
-
-  @@id([postId, actionId])
-}
-
-
