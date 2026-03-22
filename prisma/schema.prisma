@@ -1,0 +1,277 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime
+  User              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+}
+
+model MobileAuthSession {
+  id        String   @id
+  sessionId String   @unique
+  token     String?
+  userData  String?
+  error     String?
+  expires   DateTime
+  createdAt DateTime @default(now())
+}
+
+model PasswordResetToken {
+  id      String   @id
+  email   String
+  token   String   @unique
+  expires DateTime
+
+  @@unique([email, token])
+}
+
+model Project {
+  id                String        @id
+  name              String
+  description       String?
+  logoUrl           String?
+  coverUrl          String?
+  backgroundUrl     String?
+  logoHorizontalUrl String?
+  link              String?
+  email             String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime
+  defaultEntryRole  String        @default("visitor")
+  UserProject       UserProject[]
+
+  // Content Relations
+  Post     Post[]
+  Category Category[]
+  Tag      Tag[]
+  MainMenu MainMenu[]
+  Attachment Attachment[]
+  Action   Action[]
+}
+
+model Session {
+  sessionToken String   @id
+  userId       String
+  expires      DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime
+  User         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String        @id
+  name          String?
+  email         String        @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  role          UserRole      @default(VISITOR)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime
+  Account       Account[]
+  Session       Session[]
+  UserProject   UserProject[]
+
+  // Content Relations
+  AuthoredPosts Post[] @relation("PostAuthor")
+  EditedPosts   Post[] @relation("PostEditor")
+}
+
+model UserProject {
+  userId    String
+  projectId String
+  role      String?
+  createdAt DateTime @default(now())
+  Project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, projectId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+}
+
+enum UserRole {
+  ADMIN
+  USER
+  VISITOR
+  BLOCKED
+}
+
+// ----------------------------------------------------------------------------
+// CONTENT MANAGEMENT MODELS
+// ----------------------------------------------------------------------------
+
+model Post {
+  id          String    @id @default(cuid())
+  title       String
+  slug        String    @unique
+  summary     String?   @db.Text
+  content     String?   @db.Text
+  imageUrl    String?
+  
+  category    Category? @relation(fields: [categoryId], references: [id])
+  categoryId  String?
+
+  tags        PostTag[]
+
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId   String
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  publishedAt DateTime?
+
+  createdBy   String?
+  updatedBy   String?
+  author      User?     @relation("PostAuthor", fields: [createdBy], references: [id])
+  editor      User?     @relation("PostEditor", fields: [updatedBy], references: [id])
+
+  menuItems   MenuItem[]
+  attachments PostAttachment[]
+  actions     PostAction[]
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  description String?  @db.Text
+  imageUrl    String?
+
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId   String
+
+  posts       Post[]
+  menuItems   MenuItem[]
+}
+
+model Tag {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId   String
+
+  posts       PostTag[]
+}
+
+model PostTag {
+  postId      String
+  tagId       String
+
+  post        Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag         Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tagId])
+}
+
+model MainMenu {
+  id          String   @id @default(cuid())
+  title       String
+
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId   String
+
+  items       MenuItem[]
+}
+
+model MenuItem {
+  id          String   @id @default(cuid())
+  title       String
+  url         String?
+  order       Int      @default(0)
+  type        String   // "item" ou "subitem"
+
+  menu        MainMenu @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  menuId      String
+
+  parent      MenuItem?  @relation("SubItems", fields: [parentId], references: [id], onDelete: Cascade)
+  parentId    String?
+  subItems    MenuItem[] @relation("SubItems")
+
+  category    Category? @relation(fields: [categoryId], references: [id])
+  categoryId  String?
+
+  post        Post?     @relation(fields: [postId], references: [id])
+  postId      String?
+}
+
+model Attachment {
+  id          String   @id @default(cuid())
+  title       String
+  url         String
+  type        String   // Youtube Video, Youtube Channel, Instagram Profile, Instagram Post, Google Drive Folder, Google Drive File, PDF File
+  
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId   String
+
+  posts       PostAttachment[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model PostAttachment {
+  postId       String
+  attachmentId String
+
+  post         Post       @relation(fields: [postId], references: [id], onDelete: Cascade)
+  attachment   Attachment @relation(fields: [attachmentId], references: [id], onDelete: Cascade)
+
+  @@id([postId, attachmentId])
+}model Action {
+  id          String   @id @default(cuid())
+  title       String
+  description String?  @db.Text
+  imageUrl    String?
+  type        String   // Evento, Prazo, Atividade
+  startDate   DateTime?
+  endDate     DateTime?
+  
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId   String
+
+  posts       PostAction[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model PostAction {
+  postId      String
+  actionId    String
+
+  post        Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  action      Action   @relation(fields: [actionId], references: [id], onDelete: Cascade)
+
+  @@id([postId, actionId])
+}
+
+

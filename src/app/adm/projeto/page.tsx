@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import axios from "axios";
-import { Save, Upload, X, Check, Loader2, Globe, Mail, Image as ImageIcon, Layout, Menu as MenuIcon, User as UserIcon } from "lucide-react";
+import { Save, Upload, X, Check, Loader2, Globe, Mail, Image as ImageIcon, Layout, Menu as MenuIcon, User as UserIcon, Trash2 } from "lucide-react";
 import Button from "@/components/ui/button/Button";
+import { getProject, updateProject } from "@/actions/project";
+import { uploadImage, deleteImage } from "@/actions/upload";
 
 interface ProjectData {
   id: string;
@@ -26,62 +27,58 @@ export default function ProjetoPage() {
   const [project, setProject] = useState<ProjectData | null>(null);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  // File states for preview and upload
-  const [files, setFiles] = useState<{ [key: string]: File | null }>({
-    logoUrl: null,
-    logoHorizontalUrl: null,
-    coverUrl: null,
-    backgroundUrl: null,
-  });
-
-  const [previews, setPreviews] = useState<{ [key: string]: string | null }>({
-    logoUrl: null,
-    logoHorizontalUrl: null,
-    coverUrl: null,
-    backgroundUrl: null,
-  });
-
-  const projectId = process.env.NEXT_PUBLIC_PROJECT_ID;
-  const authServiceUrl = process.env.NEXT_PUBLIC_AUTH_SERVICE_URL;
+  const projectId = process.env.NEXT_PUBLIC_PROJECT_ID as string;
 
   useEffect(() => {
     fetchProject();
   }, []);
 
   async function fetchProject() {
-    try {
-      setLoading(true);
-      const res = await axios.get(`${authServiceUrl}/api/projects/${projectId}`);
-      setProject(res.data);
-    } catch (error) {
-      console.error("Error fetching project:", error);
-      setMessage({ type: "error", text: "Erro ao carregar dados do projeto." });
-    } finally {
-      setLoading(false);
-    }
+    setLoading(true);
+    const data = await getProject(projectId);
+    setProject(data as any);
+    setLoading(false);
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     if (!project) return;
     const { name, value } = e.target;
-    setProject({ ...project, [name]: value });
+    setProject({ ...project, [name]: value } as any);
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, field: string) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: string) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setFiles({ ...files, [field]: file });
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviews({ ...previews, [field]: reader.result as string });
-      };
-      reader.readAsDataURL(file);
+    if (!file || !project) return;
+
+    setSaving(true);
+    try {
+      // 1. Delete old image from blob if it exists
+      const oldUrl = (project as any)[field];
+      if (oldUrl && oldUrl.includes("blob.vercel-storage.com")) {
+        await deleteImage(oldUrl);
+      }
+
+      // 2. Upload new image
+      const formDataUpload = new FormData();
+      formDataUpload.append("file", file);
+      const blob = await uploadImage(formDataUpload);
+      
+      setProject({ ...project, [field]: blob.url } as any);
+    } catch (error) {
+      console.error("Upload failed:", error);
+      setMessage({ type: "error", text: "Falha no upload da imagem." });
+    } finally {
+      setSaving(false);
     }
   };
 
-  const removeFile = (field: string) => {
-    setFiles({ ...files, [field]: null });
-    setPreviews({ ...previews, [field]: null });
+  const removeImage = async (field: string) => {
+    if (!project) return;
+    const oldUrl = (project as any)[field];
+    if (oldUrl && oldUrl.includes("blob.vercel-storage.com")) {
+      await deleteImage(oldUrl);
+    }
+    setProject({ ...project, [field]: null } as any);
   };
 
   const handleSubmit = async (e?: React.FormEvent) => {
@@ -92,45 +89,13 @@ export default function ProjetoPage() {
     setMessage(null);
 
     try {
-      const formData = new FormData();
-      formData.append("name", project.name);
-      formData.append("description", project.description || "");
-      formData.append("link", project.link || "");
-      formData.append("email", project.email || "");
-      formData.append("defaultEntryRole", project.defaultEntryRole);
-
-      // Append files if selected
-      Object.entries(files).forEach(([field, file]) => {
-        if (file) {
-          formData.append(field, file);
-        }
-      });
-
-      const res = await axios.patch(`${authServiceUrl}/api/projects/${projectId}`, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-
-      setProject(res.data);
-      // Clear files after successful upload
-      setFiles({
-        logoUrl: null,
-        logoHorizontalUrl: null,
-        coverUrl: null,
-        backgroundUrl: null,
-      });
-      setPreviews({
-        logoUrl: null,
-        logoHorizontalUrl: null,
-        coverUrl: null,
-        backgroundUrl: null,
-      });
-
-      setMessage({ type: "success", text: "Projeto atualizado com sucesso!" });
-
-      // Clear message after 3 seconds
-      setTimeout(() => setMessage(null), 3000);
+      const result = await updateProject(projectId, project);
+      if (result.success) {
+        setMessage({ type: "success", text: "Projeto atualizado com sucesso!" });
+        setTimeout(() => setMessage(null), 3000);
+      } else {
+        setMessage({ type: "error", text: "Erro ao salvar alterações: " + result.error });
+      }
     } catch (error) {
       console.error("Error updating project:", error);
       setMessage({ type: "error", text: "Erro ao atualizar projeto." });
@@ -177,7 +142,6 @@ export default function ProjetoPage() {
       )}
 
       <form onSubmit={(e) => handleSubmit(e)} className="space-y-6">
-        {/* Basic Info */}
         <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
           <h2 className="text-lg font-semibold mb-6 flex items-center gap-2">
             <Layout className="h-5 w-5 text-brand-500" />
@@ -192,7 +156,7 @@ export default function ProjetoPage() {
                 value={project.name}
                 onChange={handleInputChange}
                 className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none transition-all dark:bg-gray-800 dark:border-gray-700 dark:text-white"
-                placeholder="Ex: Rede Filosófica"
+                placeholder="Ex: Meu Projeto"
                 required
               />
             </div>
@@ -252,7 +216,6 @@ export default function ProjetoPage() {
           </div>
         </section>
 
-        {/* Visual Identity */}
         <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
           <h2 className="text-lg font-semibold mb-6 flex items-center gap-2">
             <ImageIcon className="h-5 w-5 text-brand-500" />
@@ -260,19 +223,18 @@ export default function ProjetoPage() {
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Logo Vertical / Square */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
                   Logo (Quadrada/Principal)
                 </label>
-                {(previews.logoUrl || project.logoUrl) && (
-                  <button type="button" onClick={() => removeFile("logoUrl")} className="text-red-500 hover:text-red-600 text-xs font-medium">Excluir</button>
+                {project.logoUrl && (
+                  <button type="button" onClick={() => removeImage("logoUrl")} className="text-red-500 hover:text-red-600 text-xs font-medium">Excluir</button>
                 )}
               </div>
               <div className="relative group aspect-square max-w-[200px] mx-auto overflow-hidden rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 flex items-center justify-center bg-gray-50 dark:bg-gray-800/50">
-                {(previews.logoUrl || project.logoUrl) ? (
-                  <img src={previews.logoUrl || project.logoUrl!} alt="Logo Preview" className="w-full h-full object-contain p-4" />
+                {project.logoUrl ? (
+                  <img src={project.logoUrl} alt="Logo Preview" className="w-full h-full object-contain p-4" />
                 ) : (
                   <MenuIcon className="h-10 w-10 text-gray-300" />
                 )}
@@ -280,24 +242,23 @@ export default function ProjetoPage() {
                   <div className="bg-white p-2 rounded-full shadow-lg">
                     <Upload className="h-5 w-5 text-gray-900" />
                   </div>
-                  <input type="file" accept="image/*" onChange={(e) => handleFileChange(e, "logoUrl")} className="hidden" />
+                  <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, "logoUrl")} className="hidden" />
                 </label>
               </div>
             </div>
 
-            {/* Logo Horizontal */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
                   Logo Horizontal
                 </label>
-                {(previews.logoHorizontalUrl || project.logoHorizontalUrl) && (
-                  <button type="button" onClick={() => removeFile("logoHorizontalUrl")} className="text-red-500 hover:text-red-600 text-xs font-medium">Excluir</button>
+                {project.logoHorizontalUrl && (
+                  <button type="button" onClick={() => removeImage("logoHorizontalUrl")} className="text-red-500 hover:text-red-600 text-xs font-medium">Excluir</button>
                 )}
               </div>
               <div className="relative group aspect-video max-w-full overflow-hidden rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 flex items-center justify-center bg-gray-50 dark:bg-gray-800/50">
-                {(previews.logoHorizontalUrl || project.logoHorizontalUrl) ? (
-                  <img src={previews.logoHorizontalUrl || project.logoHorizontalUrl!} alt="Logo Horizontal Preview" className="w-full h-full object-contain p-4" />
+                {project.logoHorizontalUrl ? (
+                  <img src={project.logoHorizontalUrl} alt="Logo Horizontal Preview" className="w-full h-full object-contain p-4" />
                 ) : (
                   <ImageIcon className="h-10 w-10 text-gray-300" />
                 )}
@@ -305,22 +266,21 @@ export default function ProjetoPage() {
                   <div className="bg-white p-2 rounded-full shadow-lg">
                     <Upload className="h-5 w-5 text-gray-900" />
                   </div>
-                  <input type="file" accept="image/*" onChange={(e) => handleFileChange(e, "logoHorizontalUrl")} className="hidden" />
+                  <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, "logoHorizontalUrl")} className="hidden" />
                 </label>
               </div>
             </div>
 
-            {/* Capa */}
             <div className="space-y-4 md:col-span-2">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Capa do Projeto</label>
-                {(previews.coverUrl || project.coverUrl) && (
-                  <button type="button" onClick={() => removeFile("coverUrl")} className="text-red-500 hover:text-red-600 text-xs font-medium">Excluir</button>
+                {project.coverUrl && (
+                  <button type="button" onClick={() => removeImage("coverUrl")} className="text-red-500 hover:text-red-600 text-xs font-medium">Excluir</button>
                 )}
               </div>
               <div className="relative group aspect-[21/9] w-full overflow-hidden rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 flex items-center justify-center bg-gray-50 dark:bg-gray-800/50">
-                {(previews.coverUrl || project.coverUrl) ? (
-                  <img src={previews.coverUrl || project.coverUrl!} alt="Cover Preview" className="w-full h-full object-cover" />
+                {project.coverUrl ? (
+                  <img src={project.coverUrl} alt="Cover Preview" className="w-full h-full object-cover" />
                 ) : (
                   <div className="text-center">
                     <ImageIcon className="h-10 w-10 text-gray-300 mx-auto mb-2" />
@@ -331,22 +291,21 @@ export default function ProjetoPage() {
                   <div className="bg-white px-4 py-2 rounded-xl shadow-lg flex items-center gap-2 font-medium">
                     <Upload className="h-4 w-4" /> Alterar Capa
                   </div>
-                  <input type="file" accept="image/*" onChange={(e) => handleFileChange(e, "coverUrl")} className="hidden" />
+                  <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, "coverUrl")} className="hidden" />
                 </label>
               </div>
             </div>
 
-            {/* Background */}
             <div className="space-y-4 md:col-span-2">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Background Personalizado</label>
-                {(previews.backgroundUrl || project.backgroundUrl) && (
-                  <button type="button" onClick={() => removeFile("backgroundUrl")} className="text-red-500 hover:text-red-600 text-xs font-medium">Excluir</button>
+                {project.backgroundUrl && (
+                  <button type="button" onClick={() => removeImage("backgroundUrl")} className="text-red-500 hover:text-red-600 text-xs font-medium">Excluir</button>
                 )}
               </div>
               <div className="relative group aspect-[21/9] w-full overflow-hidden rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 flex items-center justify-center bg-gray-50 dark:bg-gray-800/50">
-                {(previews.backgroundUrl || project.backgroundUrl) ? (
-                  <img src={previews.backgroundUrl || project.backgroundUrl!} alt="Background Preview" className="w-full h-full object-cover" />
+                {project.backgroundUrl ? (
+                  <img src={project.backgroundUrl} alt="Background Preview" className="w-full h-full object-cover" />
                 ) : (
                   <div className="text-center">
                     <ImageIcon className="h-10 w-10 text-gray-300 mx-auto mb-2" />
@@ -357,7 +316,7 @@ export default function ProjetoPage() {
                   <div className="bg-white px-4 py-2 rounded-xl shadow-lg flex items-center gap-2 font-medium">
                     <Upload className="h-4 w-4" /> Alterar Background
                   </div>
-                  <input type="file" accept="image/*" onChange={(e) => handleFileChange(e, "backgroundUrl")} className="hidden" />
+                  <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, "backgroundUrl")} className="hidden" />
                 </label>
               </div>
             </div>
@@ -372,7 +331,7 @@ export default function ProjetoPage() {
           >
             {saving ? (
               <span className="flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" /> Salvando Alterações...
+                <Loader2 className="h-4 w-4 animate-spin" /> Salvando...
               </span>
             ) : (
               "Salvar Todas as Alterações"

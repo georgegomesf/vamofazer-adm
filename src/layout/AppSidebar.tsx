@@ -9,6 +9,8 @@ import { useSession } from "next-auth/react";
 import {
   SettingsIcon,
   UserIcon,
+  DocsIcon,
+  GridIcon,
 } from "../icons/index";
 
 type NavItem = {
@@ -19,6 +21,24 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
+  {
+    icon: <DocsIcon />,
+    name: "Conteúdo",
+    subItems: [
+      { name: "Postagens", path: "/adm/posts" },
+      { name: "Categorias", path: "/adm/categories" },
+      { name: "Etiquetas", path: "/adm/tags" },
+      { name: "Menu Principal", path: "/adm/main_menu" },
+    ],
+  },
+  {
+    icon: <GridIcon />,
+    name: "Recursos",
+    subItems: [
+      { name: "Anexos", path: "/adm/attachments" },
+      { name: "Ações", path: "/adm/actions" },
+    ],
+  },
   {
     icon: <SettingsIcon />,
     name: "Configurações",
