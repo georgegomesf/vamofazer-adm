@@ -8,7 +8,26 @@ export async function GET(request: Request) {
     const projectId = searchParams.get("projectId");
 
     const actions = await prisma.action.findMany({
-      where: projectId ? { projectId } : undefined,
+      where: {
+        ...(projectId ? { projectId } : {}),
+        posts: {
+          some: {
+            post: {
+              publishedAt: {
+                not: null,
+                lte: new Date(),
+              },
+            },
+          },
+        },
+      },
+      include: {
+        posts: {
+          include: {
+            post: true,
+          },
+        },
+      },
       orderBy: { createdAt: "desc" },
     });
 

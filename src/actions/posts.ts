@@ -9,7 +9,9 @@ export async function getPosts(projectId: string) {
     const posts = await prisma.post.findMany({
       where: { projectId },
       include: {
-        category: true,
+        categories: {
+          include: { category: true },
+        },
         tags: {
           include: { tag: true },
         },
@@ -28,7 +30,9 @@ export async function getPostById(id: string) {
     const post = await prisma.post.findUnique({
       where: { id },
       include: {
-        category: true,
+        categories: {
+          include: { category: true },
+        },
         tags: {
           include: { tag: true },
         },
@@ -50,13 +54,17 @@ export async function getPostById(id: string) {
 export async function createPost(projectId: string, data: any) {
   console.log("Server: Creating post...", { projectId });
   try {
-    const { tagIds, attachmentIds, actionIds, ...postData } = data;
+    const { tagIds, categoryIds, attachmentIds, actionIds, ...postData } = data;
     
     const post = await prisma.post.create({
       data: {
         ...postData,
-        categoryId: postData.categoryId || null,
         projectId,
+        categories: {
+          create: categoryIds?.map((categoryId: string) => ({
+            category: { connect: { id: categoryId } }
+          }))
+        },
         tags: {
           create: tagIds?.map((tagId: string) => ({
             tag: { connect: { id: tagId } }
@@ -86,9 +94,13 @@ export async function createPost(projectId: string, data: any) {
 export async function updatePost(id: string, data: any) {
   console.log("Server: Updating post...", id);
   try {
-    const { tagIds, attachmentIds, actionIds, ...postData } = data;
+    const { tagIds, categoryIds, attachmentIds, actionIds, ...postData } = data;
 
     // Delete existing relations first for update
+    await prisma.postCategory.deleteMany({
+      where: { postId: id }
+    });
+
     await prisma.postTag.deleteMany({
       where: { postId: id }
     });
@@ -105,7 +117,11 @@ export async function updatePost(id: string, data: any) {
       where: { id },
       data: {
         ...postData,
-        categoryId: postData.categoryId || null,
+        categories: {
+          create: categoryIds?.map((categoryId: string) => ({
+            category: { connect: { id: categoryId } }
+          }))
+        },
         tags: {
           create: tagIds?.map((tagId: string) => ({
             tag: { connect: { id: tagId } }
@@ -142,6 +158,7 @@ export async function deletePost(id: string) {
     await prisma.post.delete({
       where: { id },
     });
+    revalidatePath("/adm/posts");
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };

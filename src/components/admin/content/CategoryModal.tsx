@@ -21,6 +21,8 @@ export default function CategoryModal({ isOpen, onClose, onSuccess, category }: 
     slug: "",
     description: "",
     imageUrl: "",
+    isVisible: true,
+    type: "Postagens",
   });
 
   const projectId = process.env.NEXT_PUBLIC_PROJECT_ID as string;
@@ -32,6 +34,8 @@ export default function CategoryModal({ isOpen, onClose, onSuccess, category }: 
         slug: category.slug || "",
         description: category.description || "",
         imageUrl: category.imageUrl || "",
+        isVisible: category.isVisible !== false,
+        type: category.type || "Postagens",
       });
     } else {
       setFormData({
@@ -39,6 +43,8 @@ export default function CategoryModal({ isOpen, onClose, onSuccess, category }: 
         slug: "",
         description: "",
         imageUrl: "",
+        isVisible: true,
+        type: "Postagens",
       });
     }
   }, [category, isOpen]);
@@ -157,6 +163,34 @@ export default function CategoryModal({ isOpen, onClose, onSuccess, category }: 
         </div>
 
         <div className="space-y-2">
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Tipo de Conteúdo</label>
+          <div className="flex gap-4">
+            <label className="flex items-center gap-2 cursor-pointer group">
+              <input
+                type="radio"
+                name="type"
+                value="Postagens"
+                checked={formData.type === "Postagens"}
+                onChange={() => setFormData(prev => ({ ...prev, type: "Postagens" }))}
+                className="h-4 w-4 text-brand-500 focus:ring-brand-500 border-gray-300"
+              />
+              <span className="text-sm text-gray-700 dark:text-gray-300 group-hover:text-brand-500 transition-colors">Postagens</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer group">
+              <input
+                type="radio"
+                name="type"
+                value="Eventos"
+                checked={formData.type === "Eventos"}
+                onChange={() => setFormData(prev => ({ ...prev, type: "Eventos" }))}
+                className="h-4 w-4 text-brand-500 focus:ring-brand-500 border-gray-300"
+              />
+              <span className="text-sm text-gray-700 dark:text-gray-300 group-hover:text-brand-500 transition-colors">Eventos</span>
+            </label>
+          </div>
+        </div>
+
+        <div className="space-y-2">
           <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
             <ImageIcon className="h-4 w-4" /> Imagem da Categoria
           </label>
@@ -183,6 +217,19 @@ export default function CategoryModal({ isOpen, onClose, onSuccess, category }: 
               />
             </div>
           </div>
+        </div>
+
+        <div className="flex items-center gap-3 py-2">
+          <input
+            type="checkbox"
+            id="isVisible"
+            checked={formData.isVisible}
+            onChange={(e) => setFormData(prev => ({ ...prev, isVisible: e.target.checked }))}
+            className="h-5 w-5 rounded border-gray-300 text-brand-500 focus:ring-brand-500 cursor-pointer"
+          />
+          <label htmlFor="isVisible" className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
+            Visível no Site
+          </label>
         </div>
 
         <div className="flex justify-end gap-3 pt-4">

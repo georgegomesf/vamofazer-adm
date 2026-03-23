@@ -96,15 +96,17 @@ export default function CategoriesPage() {
             <thead className="bg-gray-50 text-gray-600 dark:bg-gray-800/50 dark:text-gray-400">
               <tr>
                 <th className="px-6 py-4 font-medium min-w-[200px]">Categoria</th>
+                <th className="px-6 py-4 font-medium">Tipo</th>
                 <th className="px-6 py-4 font-medium">Descrição</th>
-                <th className="px-6 py-4 font-medium">Postagens</th>
+                <th className="px-6 py-4 font-medium">Status</th>
+                <th className="px-6 py-4 font-medium text-center">Postagens</th>
                 <th className="px-6 py-4 font-medium text-right w-20">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
               {loading ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
                     <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2 text-brand-500" />
                     Carregando categorias...
                   </td>
@@ -123,9 +125,29 @@ export default function CategoriesPage() {
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="text-gray-600 dark:text-gray-400 truncate max-w-[200px] md:max-w-[300px]" title={category.description || ""}>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                      category.type === "Eventos" 
+                        ? "bg-orange-100 text-orange-800 dark:bg-orange-500/10 dark:text-orange-400" 
+                        : "bg-blue-100 text-blue-800 dark:bg-blue-500/10 dark:text-blue-400"
+                    }`}>
+                      {category.type || "Postagens"}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-gray-600 dark:text-gray-400 truncate max-w-[200px]" title={category.description || ""}>
                       {category.description || "-"}
                     </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    {category.isVisible !== false ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-400">
+                        Visível
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+                        Invisível
+                      </span>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-center">
                     <span className="inline-flex items-center justify-center min-w-[32px] px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300">

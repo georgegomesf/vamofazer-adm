@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { deleteImage } from "./upload";
+import { revalidatePath } from "next/cache";
 
 export async function getCategories(projectId: string) {
   try {
@@ -21,7 +22,7 @@ export async function getCategories(projectId: string) {
   }
 }
 
-export async function createCategory(projectId: string, data: { title: string; slug: string; description?: string; imageUrl?: string }) {
+export async function createCategory(projectId: string, data: { title: string; slug: string; description?: string; imageUrl?: string; isVisible?: boolean; type?: string }) {
   try {
     const category = await prisma.category.create({
       data: {
@@ -29,9 +30,12 @@ export async function createCategory(projectId: string, data: { title: string; s
         slug: data.slug,
         description: data.description,
         imageUrl: data.imageUrl,
+        isVisible: data.isVisible ?? true,
+        type: data.type ?? "Postagens",
         projectId,
       },
     });
+    revalidatePath("/adm/categories");
     return { success: true, category };
   } catch (error: any) {
     console.error("Error creating category:", error);
@@ -39,7 +43,7 @@ export async function createCategory(projectId: string, data: { title: string; s
   }
 }
 
-export async function updateCategory(id: string, data: { title: string; slug: string; description?: string; imageUrl?: string }) {
+export async function updateCategory(id: string, data: { title: string; slug: string; description?: string; imageUrl?: string; isVisible?: boolean; type?: string }) {
   try {
     const category = await prisma.category.update({
       where: { id },
@@ -48,8 +52,11 @@ export async function updateCategory(id: string, data: { title: string; slug: st
         slug: data.slug,
         description: data.description,
         imageUrl: data.imageUrl,
+        isVisible: data.isVisible,
+        type: data.type,
       },
     });
+    revalidatePath("/adm/categories");
     return { success: true, category };
   } catch (error: any) {
     console.error("Error updating category:", error);
@@ -66,6 +73,7 @@ export async function deleteCategory(id: string) {
     await prisma.category.delete({
       where: { id },
     });
+    revalidatePath("/adm/categories");
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };

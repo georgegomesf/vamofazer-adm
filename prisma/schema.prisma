@@ -119,7 +119,6 @@ model Post {
   summary     String?
   content     String?
   imageUrl    String?
-  categoryId  String?
   projectId   String
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
@@ -127,13 +126,13 @@ model Post {
   createdBy   String?
   updatedBy   String?
   menuItems   MenuItem[]
-  category    Category?        @relation(fields: [categoryId], references: [id])
   author      User?            @relation("PostAuthor", fields: [createdBy], references: [id])
   project     Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
   editor      User?            @relation("PostEditor", fields: [updatedBy], references: [id])
   actions     PostAction[]
   attachments PostAttachment[]
   tags        PostTag[]
+  categories  PostCategory[]
 }
 
 model Category {
@@ -143,10 +142,21 @@ model Category {
   description String?
   imageUrl    String?
   projectId   String
+  type        String?    @default("Postagens") // "Postagens" or "Eventos"
   createdAt   DateTime   @default(now())
+  isVisible   Boolean    @default(true)
   project     Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
   menuItems   MenuItem[]
-  posts       Post[]
+  posts       PostCategory[]
+}
+
+model PostCategory {
+  postId     String
+  categoryId String
+  post       Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([postId, categoryId])
 }
 
 model Tag {

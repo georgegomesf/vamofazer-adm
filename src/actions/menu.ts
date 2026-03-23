@@ -84,3 +84,20 @@ export async function deleteMenuItem(id: string) {
     return { success: false, error: error.message };
   }
 }
+
+export async function reorderMenuItems(items: { id: string; order: number }[]) {
+  try {
+    await prisma.$transaction(
+      items.map((item) =>
+        prisma.menuItem.update({
+          where: { id: item.id },
+          data: { order: item.order },
+        })
+      )
+    );
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error reordering menu items:", error);
+    return { success: false, error: error.message };
+  }
+}

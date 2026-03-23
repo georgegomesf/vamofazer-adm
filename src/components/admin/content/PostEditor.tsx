@@ -1,17 +1,16 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { 
-  Save, Loader2, FileText, Image as ImageIcon, Calendar, Tag as TagIcon, 
-  Layout, ChevronLeft, Eye, Edit3, Trash2, Link as LinkIcon, Plus, 
-  X as CloseIcon, Clock, ListTodo, Type, Paperclip 
+import {
+  Save, Loader2, FileText, Image as ImageIcon, Calendar, Tag as TagIcon,
+  Layout, ChevronLeft, Eye, Edit3, Trash2, Link as LinkIcon, Plus,
+  X as CloseIcon, Clock, ListTodo, Type, Paperclip, Search
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import Button from "@/components/ui/button/Button";
 import { createPost, updatePost } from "@/actions/posts";
 import { getCategories } from "@/actions/categories";
-import { getTags } from "@/actions/tags";
+import { getTags, createTag } from "@/actions/tags";
 import { getAttachments } from "@/actions/attachments";
 import { getActions } from "@/actions/actions";
 import { uploadImage, deleteImage } from "@/actions/upload";
@@ -32,6 +31,8 @@ export default function PostEditor({ post }: PostEditorProps) {
   const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit");
   const [isAttachmentModalOpen, setIsAttachmentModalOpen] = useState(false);
   const [isActionModalOpen, setIsActionModalOpen] = useState(false);
+  const [tagSearch, setTagSearch] = useState("");
+  const [tagDropdownOpen, setTagDropdownOpen] = useState(false);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -39,8 +40,8 @@ export default function PostEditor({ post }: PostEditorProps) {
     summary: "",
     content: "",
     imageUrl: "",
-    categoryId: "",
     tagIds: [] as string[],
+    categoryIds: [] as string[],
     attachmentIds: [] as string[],
     actionIds: [] as string[],
     publishedAt: null as string | null,
@@ -57,10 +58,10 @@ export default function PostEditor({ post }: PostEditorProps) {
         summary: post.summary || "",
         content: post.content || "",
         imageUrl: post.imageUrl || "",
-        categoryId: post.categoryId || "",
-        tagIds: post.tags?.map((pt: any) => pt.tagId) || [],
-        attachmentIds: post.attachments?.map((pa: any) => pa.attachmentId) || [],
-        actionIds: post.actions?.map((pa: any) => pa.actionId) || [],
+        categoryIds: post.categories?.filter((pc: any) => pc.category).map((pc: any) => pc.categoryId) || [],
+        tagIds: post.tags?.filter((pt: any) => pt.tag).map((pt: any) => pt.tagId) || [],
+        attachmentIds: post.attachments?.filter((pa: any) => pa.attachment).map((pa: any) => pa.attachmentId) || [],
+        actionIds: post.actions?.filter((pa: any) => pa.action).map((pa: any) => pa.actionId) || [],
         publishedAt: post.publishedAt ? new Date(post.publishedAt).toISOString().split('T')[0] : null,
       });
     }
@@ -95,6 +96,15 @@ export default function PostEditor({ post }: PostEditorProps) {
     }
   };
 
+  const handleCategoryToggle = (categoryId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      categoryIds: prev.categoryIds.includes(categoryId)
+        ? prev.categoryIds.filter(id => id !== categoryId)
+        : [...prev.categoryIds, categoryId]
+    }));
+  };
+
   const handleTagToggle = (tagId: string) => {
     setFormData(prev => ({
       ...prev,
@@ -116,7 +126,7 @@ export default function PostEditor({ post }: PostEditorProps) {
   const handleActionToggle = (actionId: string, type: string) => {
     setFormData(prev => {
       const isLinked = prev.actionIds.includes(actionId);
-      
+
       if (isLinked) {
         return { ...prev, actionIds: prev.actionIds.filter(id => id !== actionId) };
       }
@@ -124,28 +134,28 @@ export default function PostEditor({ post }: PostEditorProps) {
       // If it's Evento or Prazo, remove existing of same type
       let newIds = [...prev.actionIds];
       if (type === "Evento" || type === "Prazo") {
-        const existingOfSameType = allActions.find(a => 
+        const existingOfSameType = allActions.find(a =>
           prev.actionIds.includes(a.id) && a.type === type
         );
         if (existingOfSameType) {
           newIds = newIds.filter(id => id !== existingOfSameType.id);
         }
       }
-      
+
       return { ...prev, actionIds: [...newIds, actionId] };
     });
   };
 
   const handleActionModalSuccess = async (actionId: string, type: string) => {
-    await fetchData(); // Refresh list
+    await fetchData();
     handleActionToggle(actionId, type);
   };
 
   const handleAttachmentModalSuccess = async (attachmentId: string) => {
-    await fetchData(); // Refresh list
+    await fetchData();
     setFormData(prev => ({
       ...prev,
-      attachmentIds: [...prev.attachmentIds, attachmentId] // Automatically select it
+      attachmentIds: [...prev.attachmentIds, attachmentId]
     }));
   };
 
@@ -180,7 +190,6 @@ export default function PostEditor({ post }: PostEditorProps) {
       publishedAt: formData.publishedAt ? new Date(formData.publishedAt).toISOString() : null,
     };
 
-    console.log("PostEditor: Submitting...", submissionData);
     try {
       let result;
       if (post) {
@@ -189,12 +198,9 @@ export default function PostEditor({ post }: PostEditorProps) {
         result = await createPost(projectId, submissionData);
       }
 
-      console.log("PostEditor: Result received:", result);
       if (result.success) {
-        console.log("PostEditor: Success! Redirecting...");
         router.push("/adm/posts");
       } else {
-        console.error("PostEditor: Error result:", result.error);
         alert("Erro ao salvar postagem: " + result.error);
       }
     } catch (error) {
@@ -230,16 +236,14 @@ export default function PostEditor({ post }: PostEditorProps) {
             <button
               type="button"
               onClick={() => setActiveTab("edit")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === "edit" ? "bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white" : "text-gray-500 hover:text-gray-700"
-                }`}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === "edit" ? "bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white" : "text-gray-500 hover:text-gray-700"}`}
             >
               <Edit3 className="h-4 w-4" /> Escrever
             </button>
             <button
               type="button"
               onClick={() => setActiveTab("preview")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === "preview" ? "bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white" : "text-gray-500 hover:text-gray-700"
-                }`}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === "preview" ? "bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white" : "text-gray-500 hover:text-gray-700"}`}
             >
               <Eye className="h-4 w-4" /> Visualizar
             </button>
@@ -266,7 +270,7 @@ export default function PostEditor({ post }: PostEditorProps) {
                   required
                 />
                 <div className="flex items-center gap-2 text-sm text-gray-400">
-                  <span className="font-mono">redefilosofica.com/</span>
+                  <span className="font-mono">{process.env.NEXT_PUBLIC_BASE_URL}/</span>
                   <input
                     type="text"
                     name="slug"
@@ -354,44 +358,121 @@ export default function PostEditor({ post }: PostEditorProps) {
           <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
             <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
               <Layout className="h-5 w-5 text-brand-500" />
-              Taxonomia
+              Categorias
             </h3>
             <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Categoria</label>
-                <select
-                  name="categoryId"
-                  value={formData.categoryId}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none transition-all dark:bg-gray-800 dark:border-gray-700 dark:text-white"
-                >
-                  <option value="">Sem Categoria</option>
-                  {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>{cat.title}</option>
-                  ))}
-                </select>
+              <div className="flex flex-wrap gap-2 pt-2">
+                {categories.map((cat) => (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => handleCategoryToggle(cat.id)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border ${formData.categoryIds.includes(cat.id)
+                      ? "bg-brand-500 border-brand-500 text-white shadow-md shadow-brand-500/20"
+                      : "bg-gray-50 border-gray-100 text-gray-500 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400"
+                      }`}
+                  >
+                    {cat.title}
+                  </button>
+                ))}
+                {categories.length === 0 && <span className="text-xs text-gray-400 italic">Nenhuma categoria cadastrada.</span>}
+              </div>
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+            <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
+              <TagIcon className="h-4 w-4 text-brand-500" /> Etiquetas
+            </h3>
+            <div className="space-y-4">
+              <div className="relative group">
+                <div className="flex bg-gray-50 dark:bg-gray-800/50 p-2.5 rounded-xl border border-transparent focus-within:border-brand-500 transition-all items-center gap-2">
+                  <Search className="h-4 w-4 text-gray-400 ml-1" />
+                  <input
+                    type="text"
+                    placeholder="Pesquisar etiqueta..."
+                    className="bg-transparent border-none outline-none text-sm w-full dark:text-white"
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setTagSearch(val);
+                      setTagDropdownOpen(val.length > 0);
+                    }}
+                    value={tagSearch}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && tagSearch.trim()) {
+                        e.preventDefault();
+                        const exactMatch = allTags.find(t => t.title.toLowerCase() === tagSearch.toLowerCase());
+                        if (exactMatch && !formData.tagIds.includes(exactMatch.id)) {
+                          handleTagToggle(exactMatch.id);
+                          setTagSearch("");
+                          setTagDropdownOpen(false);
+                        }
+                      }
+                    }}
+                  />
+                </div>
+
+                {tagDropdownOpen && (
+                  <div className="absolute top-full left-0 w-full mt-2 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden">
+                    <div className="max-h-48 overflow-y-auto">
+                      {allTags
+                        .filter(t => t.title.toLowerCase().includes(tagSearch.toLowerCase()) && !formData.tagIds.includes(t.id))
+                        .map((tag) => (
+                          <button
+                            key={tag.id}
+                            type="button"
+                            onClick={() => {
+                              handleTagToggle(tag.id);
+                              setTagSearch("");
+                              setTagDropdownOpen(false);
+                            }}
+                            className="w-full px-4 py-2.5 text-left text-sm hover:bg-brand-50 hover:text-brand-600 dark:hover:bg-brand-500/10 dark:text-gray-200 transition-colors flex items-center justify-between"
+                          >
+                            <span>{tag.title}</span>
+                            <Plus className="h-3 w-3 opacity-40" />
+                          </button>
+                        ))}
+
+                      {tagSearch && !allTags.some(t => t.title.toLowerCase() === tagSearch.toLowerCase()) && (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const slug = tagSearch.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
+                            const res = await createTag(projectId, { title: tagSearch, slug });
+                            if (res.success && res.tag) {
+                              await fetchData();
+                              handleTagToggle(res.tag.id);
+                              setTagSearch("");
+                              setTagDropdownOpen(false);
+                            }
+                          }}
+                          className="w-full px-4 py-3 text-left text-sm border-t border-gray-50 dark:border-gray-700 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 transition-colors flex items-center gap-2"
+                        >
+                          <Plus className="h-4 w-4" />
+                          <span>Criar nova etiqueta: <span className="font-bold">"{tagSearch}"</span></span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                  <TagIcon className="h-4 w-4" /> Etiquetas
-                </label>
-                <div className="flex flex-wrap gap-2 pt-2">
-                  {allTags.map((tag) => (
+              <div className="flex flex-wrap gap-2 pt-2">
+                {allTags.filter(t => formData.tagIds.includes(t.id)).map((tag) => (
+                  <div
+                    key={tag.id}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-brand-500 text-white text-[10px] font-bold shadow-sm"
+                  >
+                    {tag.title}
                     <button
-                      key={tag.id}
                       type="button"
                       onClick={() => handleTagToggle(tag.id)}
-                      className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${formData.tagIds.includes(tag.id)
-                        ? "bg-brand-500 text-white shadow-sm"
-                        : "bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400"
-                        }`}
+                      className="p-0.5 hover:bg-white/20 rounded-full transition-colors"
                     >
-                      {tag.title}
+                      <CloseIcon className="h-3 w-3" />
                     </button>
-                  ))}
-                  {allTags.length === 0 && <span className="text-xs text-gray-400 italic">Nenhuma etiqueta cadastrada.</span>}
-                </div>
+                  </div>
+                ))}
               </div>
             </div>
           </section>
@@ -407,14 +488,14 @@ export default function PostEditor({ post }: PostEditorProps) {
                   <div
                     key={act.id}
                     className={`px-3 py-2 rounded-xl text-xs font-medium border shadow-sm flex items-center justify-between group
-                      ${act.type === 'Evento' ? 'bg-blue-50 border-blue-500 text-blue-900 dark:bg-blue-500/10 dark:text-blue-300' : 
-                        act.type === 'Prazo' ? 'bg-red-50 border-red-500 text-red-900 dark:bg-red-500/10 dark:text-red-300' : 
-                        'bg-emerald-50 border-emerald-500 text-emerald-900 dark:bg-emerald-500/10 dark:text-emerald-300'}`}
+                      ${act.type === 'Evento' ? 'bg-blue-50 border-blue-500 text-blue-900 dark:bg-blue-500/10 dark:text-blue-300' :
+                        act.type === 'Prazo' ? 'bg-red-50 border-red-500 text-red-900 dark:bg-red-500/10 dark:text-red-300' :
+                          'bg-emerald-50 border-emerald-500 text-emerald-900 dark:bg-emerald-500/10 dark:text-emerald-300'}`}
                   >
                     <div className="flex items-center gap-2 overflow-hidden">
-                      {act.type === 'Evento' ? <Calendar className="h-3.5 w-3.5" /> : 
-                       act.type === 'Prazo' ? <Clock className="h-3.5 w-3.5" /> : 
-                       <ListTodo className="h-3.5 w-3.5" />}
+                      {act.type === 'Evento' ? <Calendar className="h-3.5 w-3.5" /> :
+                        act.type === 'Prazo' ? <Clock className="h-3.5 w-3.5" /> :
+                          <ListTodo className="h-3.5 w-3.5" />}
                       <div className="flex flex-col gap-0.5 overflow-hidden">
                         <span className="font-bold truncate">{act.title}</span>
                         <span className="opacity-60 text-[10px] truncate">{act.type}</span>
@@ -424,32 +505,27 @@ export default function PostEditor({ post }: PostEditorProps) {
                       type="button"
                       onClick={() => handleActionToggle(act.id, act.type)}
                       className="p-1 hover:bg-black/10 rounded-lg transition-colors"
-                      title="Remover vínculo"
                     >
                       <CloseIcon className="h-3.5 w-3.5" />
                     </button>
                   </div>
                 ))}
-                {formData.actionIds.length === 0 && <span className="text-xs text-gray-400 italic">Nenhuma ação vinculada.</span>}
               </div>
-
-              <div className="pt-2">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setIsActionModalOpen(true)}
-                  className="w-full text-xs py-2 h-auto flex items-center justify-center gap-2"
-                >
-                  <Plus className="h-3 w-3" /> Gerenciar Ações
-                </Button>
-              </div>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsActionModalOpen(true)}
+                className="w-full text-xs py-2 h-auto flex items-center justify-center gap-2"
+              >
+                <Plus className="h-3 w-3" /> Gerenciar Ações
+              </Button>
             </div>
           </section>
 
           <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
             <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
               <Paperclip className="h-5 w-5 text-brand-500" />
-              Anexos Vinculados
+              Anexos
             </h3>
             <div className="space-y-4">
               <div className="flex flex-col gap-2 pt-2">
@@ -466,25 +542,20 @@ export default function PostEditor({ post }: PostEditorProps) {
                       type="button"
                       onClick={() => handleAttachmentToggle(att.id)}
                       className="p-1 hover:bg-brand-500 hover:text-white rounded-lg transition-colors"
-                      title="Remover vínculo"
                     >
                       <CloseIcon className="h-3.5 w-3.5" />
                     </button>
                   </div>
                 ))}
-                {formData.attachmentIds.length === 0 && <span className="text-xs text-gray-400 italic">Nenhum anexo vinculado.</span>}
               </div>
-
-              <div className="pt-2">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setIsAttachmentModalOpen(true)}
-                  className="w-full text-xs py-2 h-auto flex items-center justify-center gap-2"
-                >
-                  <Plus className="h-3 w-3" /> Gerenciar Anexos
-                </Button>
-              </div>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsAttachmentModalOpen(true)}
+                className="w-full text-xs py-2 h-auto flex items-center justify-center gap-2"
+              >
+                <Plus className="h-3 w-3" /> Gerenciar Anexos
+              </Button>
             </div>
           </section>
 
@@ -506,24 +577,24 @@ export default function PostEditor({ post }: PostEditorProps) {
                     className="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none transition-all dark:bg-gray-800 dark:border-gray-700 dark:text-white"
                   />
                 </div>
-                {!formData.publishedAt && <p className="text-[10px] text-gray-500 mt-1 italic">Vazio = Salvar como Rascunho</p>}
+                {!formData.publishedAt && <p className="text-[10px] text-gray-500 mt-1 italic">Vazio = Rascunho</p>}
               </div>
             </div>
           </section>
         </div>
       </form>
 
-      <QuickAttachmentModal 
-        isOpen={isAttachmentModalOpen} 
-        onClose={() => setIsAttachmentModalOpen(false)} 
+      <QuickAttachmentModal
+        isOpen={isAttachmentModalOpen}
+        onClose={() => setIsAttachmentModalOpen(false)}
         onSuccess={handleAttachmentModalSuccess}
         allAttachments={allAttachments}
         linkedAttachmentIds={formData.attachmentIds}
       />
 
-      <QuickActionModal 
-        isOpen={isActionModalOpen} 
-        onClose={() => setIsActionModalOpen(false)} 
+      <QuickActionModal
+        isOpen={isActionModalOpen}
+        onClose={() => setIsActionModalOpen(false)}
         onSuccess={handleActionModalSuccess}
         allActions={allActions}
         linkedActionIds={formData.actionIds}

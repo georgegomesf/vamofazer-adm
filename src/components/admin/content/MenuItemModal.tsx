@@ -28,7 +28,7 @@ export default function MenuItemModal({ isOpen, onClose, onSuccess, item, parent
     type: "item",
     categoryId: null as string | null,
     postId: null as string | null,
-    linkType: "url" as "url" | "category" | "post",
+    linkType: "url" as "url" | "category" | "post" | "section",
   });
 
   const projectId = process.env.NEXT_PUBLIC_PROJECT_ID as string;
@@ -41,7 +41,7 @@ export default function MenuItemModal({ isOpen, onClose, onSuccess, item, parent
 
   useEffect(() => {
     if (item) {
-      const linkType = item.categoryId ? "category" : item.postId ? "post" : "url";
+      const linkType = item.type === "section" ? "section" : item.categoryId ? "category" : item.postId ? "post" : "url";
       setFormData({
         title: item.title || "",
         url: item.url || "",
@@ -81,7 +81,7 @@ export default function MenuItemModal({ isOpen, onClose, onSuccess, item, parent
     }));
   };
 
-  const handleLinkTypeChange = (type: "url" | "category" | "post") => {
+  const handleLinkTypeChange = (type: "url" | "category" | "post" | "section") => {
     setFormData(prev => ({
       ...prev,
       linkType: type,
@@ -99,7 +99,7 @@ export default function MenuItemModal({ isOpen, onClose, onSuccess, item, parent
       title: formData.title,
       url: formData.linkType === "url" ? formData.url : null,
       order: formData.order,
-      type: formData.type,
+      type: formData.linkType === "section" ? "section" : formData.type,
       parentId: parentId || null,
       categoryId: formData.linkType === "category" ? formData.categoryId : null,
       postId: formData.linkType === "post" ? formData.postId : null,
@@ -152,11 +152,12 @@ export default function MenuItemModal({ isOpen, onClose, onSuccess, item, parent
 
         <div className="space-y-2">
           <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Tipo de Link</label>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {[
               { id: "url", label: "URL", icon: LinkIcon },
               { id: "category", label: "Categoria", icon: Layers },
               { id: "post", label: "Postagem", icon: FileText },
+              { id: "section", label: "Seção", icon: MenuIcon },
             ].map((type) => (
               <button
                 key={type.id}
@@ -220,6 +221,12 @@ export default function MenuItemModal({ isOpen, onClose, onSuccess, item, parent
                 <option key={post.id} value={post.id}>{post.title}</option>
               ))}
             </select>
+          </div>
+        )}
+
+        {formData.linkType === "section" && (
+          <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 text-xs text-gray-500 italic">
+            Este item funcionará apenas como um agrupador (Pai) no menu, sem link próprio.
           </div>
         )}
 

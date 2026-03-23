@@ -10,13 +10,37 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Missing projectId" }, { status: 400 });
     }
 
+    const categoryTitle = searchParams.get("categoryTitle");
+
     const posts = await prisma.post.findMany({
-      where: { projectId },
-      take: 3,
-      include: {
-        category: true,
+      where: { 
+        projectId,
+        publishedAt: {
+          not: null,
+          lte: new Date(),
+        },
+        ...(categoryTitle ? {
+          categories: {
+            some: {
+              category: {
+                title: categoryTitle,
+              }
+            }
+          }
+        } : {}),
       },
-      orderBy: { createdAt: "desc" },
+      take: 10,
+      include: {
+        categories: {
+          include: { category: true }
+        },
+        actions: {
+          include: {
+            action: true
+          }
+        }
+      },
+      orderBy: { publishedAt: "desc" },
     });
 
     return NextResponse.json(
