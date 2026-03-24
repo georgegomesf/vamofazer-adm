@@ -79,9 +79,9 @@ export async function GET(request: Request) {
       total = allPosts.length;
 
       // Sort logic
-      posts = allPosts.sort((a, b) => {
-        const eventA = a.actions.find(act => act.action.type === "Evento")?.action;
-        const eventB = b.actions.find(act => act.action.type === "Evento")?.action;
+      posts = allPosts.sort((a: any, b: any) => {
+        const eventA = a.actions.find((act: any) => act.action.type === "Evento")?.action;
+        const eventB = b.actions.find((act: any) => act.action.type === "Evento")?.action;
 
         if (!eventA && !eventB) return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
         if (!eventA) return 1;
