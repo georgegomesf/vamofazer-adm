@@ -118,7 +118,7 @@ export default function PerfilPage() {
         image: user.image
       });
 
-      if (result.success) {
+      if (result.success && result.user) {
         setUser(result.user as any);
         setFormData(prev => ({ ...prev, password: "", confirmPassword: "" }));
         

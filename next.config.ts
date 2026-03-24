@@ -13,9 +13,10 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // @ts-ignore
-  serverActions: {
-    bodySizeLimit: "10mb",
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "10mb",
+    },
   },
   webpack(config) {
     config.module.rules.push({

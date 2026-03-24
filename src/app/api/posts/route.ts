@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 
 export async function GET(request: Request) {
   try {
@@ -22,7 +23,7 @@ export async function GET(request: Request) {
       if (cat?.type) categoryType = cat.type;
     }
 
-    const where = {
+    const where: Prisma.PostWhereInput = {
       ...(projectId ? { projectId } : {}),
       ...(search ? {
         OR: [
