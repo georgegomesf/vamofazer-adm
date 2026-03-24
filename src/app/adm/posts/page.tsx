@@ -157,7 +157,22 @@ export default function PostsPage() {
                   <td className="px-6 py-4 text-gray-500 whitespace-nowrap">
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4" />
-                      {post.publishedAt ? new Date(post.publishedAt).toLocaleDateString("pt-BR") : "-"}
+                      {post.publishedAt ? (
+                        <div className="flex flex-col">
+                          <span>{(() => {
+                            const val = post.publishedAt;
+                            const d = (typeof val === 'string' && !val.includes('Z') && !val.includes('+')) ? new Date(val + 'Z') : new Date(val);
+                            return d.toLocaleDateString("pt-BR");
+                          })()}</span>
+                          <span className="text-[10px] opacity-70">
+                            {(() => {
+                              const val = post.publishedAt;
+                              const d = (typeof val === 'string' && !val.includes('Z') && !val.includes('+')) ? new Date(val + 'Z') : new Date(val);
+                              return d.toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' });
+                            })()}
+                          </span>
+                        </div>
+                      ) : "-"}
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right">

@@ -50,9 +50,20 @@ export default function PostEditor({ post }: PostEditorProps) {
 
   const projectId = process.env.NEXT_PUBLIC_PROJECT_ID as string;
 
-  const formatToLocalDatetime = (dateString?: string | null) => {
+  const formatToLocalDatetime = (dateString?: string | Date | null) => {
     if (!dateString) return null;
-    const d = new Date(dateString);
+    
+    // Garantir que trabalhamos com um objeto Date. 
+    // Se for string e não tiver fuso, assumimos que vem do DB como UTC.
+    let d: Date;
+    if (typeof dateString === 'string' && !dateString.includes('Z') && !dateString.includes('+')) {
+      d = new Date(dateString + 'Z');
+    } else {
+      d = new Date(dateString);
+    }
+
+    if (isNaN(d.getTime())) return null;
+
     const pad = (n: number) => n.toString().padStart(2, '0');
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
   };
