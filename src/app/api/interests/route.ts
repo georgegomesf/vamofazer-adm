@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+const corsHeaders = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+};
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -8,12 +14,20 @@ export async function GET(request: Request) {
     const projectId = searchParams.get("projectId");
 
     if (!userId || !projectId) {
-      return NextResponse.json({ error: "userId and projectId are required" }, { status: 400 });
+      return NextResponse.json({ error: "userId and projectId are required" }, { status: 400, headers: corsHeaders });
+    }
+
+    const listId = searchParams.get("listId");
+
+    const where: any = { userId, projectId };
+    if (listId) {
+      where.listId = listId;
     }
 
     const interests = await prisma.userInterest.findMany({
-      where: { userId, projectId },
+      where,
       include: {
+        list: true,
         post: {
           include: {
             categories: { 
@@ -28,34 +42,38 @@ export async function GET(request: Request) {
       orderBy: { createdAt: "desc" }
     });
 
-    // Map to the format expected by the frontend cart/interest slice
     const items = interests.map((interest: any) => {
         const post = interest.post;
+        if (!post) return null;
+        
         const mainEventAction = post.actions.find((act: any) => act.action.type === "Evento")?.action;
 
         return {
             id: post.id,
             title: post.title,
             slug: post.slug,
+            summary: post.summary,
+            imageUrl: post.imageUrl,
+            img: post.imageUrl || "", 
             imgs: {
                 thumbnails: [post.imageUrl || ""],
                 previews: [post.imageUrl || ""]
             },
-            date: post.publishedAt?.toISOString(),
-            eventDate: mainEventAction?.startDate?.toISOString(),
-            eventEndDate: mainEventAction?.endDate?.toISOString(),
+            date: post.publishedAt ? new Date(post.publishedAt).toLocaleDateString() : "",
+            eventDate: mainEventAction?.startDate,
+            eventEndDate: mainEventAction?.endDate,
             hasEvent: !!mainEventAction,
-            quantity: 1
+            listId: interest.listId,
+            listName: interest.list?.name || "Minha Lista",
+            quantity: 1,
+            post: post 
         };
-    });
+    }).filter(Boolean);
 
-    return NextResponse.json(
-      { interests: items },
-      { headers: { "Access-Control-Allow-Origin": "*" } }
-    );
+    return NextResponse.json({ interests: items }, { headers: corsHeaders });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "Failed to fetch interests" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to fetch interests" }, { status: 500, headers: corsHeaders });
   }
 }
 
@@ -63,53 +81,40 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { userId, postId, projectId } = body;
-    console.log("API INTERESTS: POST request received", { userId, postId, projectId });
+    let { listId } = body;
 
     if (!userId || !postId || !projectId) {
-      console.warn("API INTERESTS: Missing required fields", { userId, postId, projectId });
-      return NextResponse.json({ error: "userId, postId and projectId are required" }, { status: 400 });
+      return NextResponse.json({ error: "userId, postId and projectId are required" }, { status: 400, headers: corsHeaders });
     }
 
-    const where = {
-        userId_postId: { userId, postId }
-    };
+    if (!listId) {
+      const defaultList = await prisma.interestList.upsert({
+        where: { userId_name_projectId: { userId, projectId, name: "Minha Lista" } },
+        update: {},
+        create: { userId, projectId, name: "Minha Lista" }
+      });
+      listId = defaultList.id;
+    }
 
-    const existingInterest = await prisma.userInterest.findUnique({
-      where
-    });
+    const where = { userId_postId_listId: { userId, postId, listId } };
+    const existingInterest = await prisma.userInterest.findUnique({ where });
 
     if (existingInterest) {
-      console.log("API INTERESTS: Removing existing interest", { userId, postId });
-      await prisma.userInterest.delete({
-        where
-      });
-      return NextResponse.json(
-        { action: "removed", message: "Interesse removido com sucesso" },
-        { headers: { "Access-Control-Allow-Origin": "*" } }
-      );
+      await prisma.userInterest.delete({ where });
+      return NextResponse.json({ action: "removed", message: "Interesse removido com sucesso" }, { headers: corsHeaders });
     } else {
-      console.log("API INTERESTS: Adding new interest", { userId, postId });
-      await prisma.userInterest.create({
-        data: { userId, postId, projectId }
-      });
-      return NextResponse.json(
-        { action: "added", message: "Interesse adicionado com sucesso" },
-        { headers: { "Access-Control-Allow-Origin": "*" } }
-      );
+      await prisma.userInterest.create({ data: { userId, postId, projectId, listId } });
+      return NextResponse.json({ action: "added", message: "Interesse adicionado com sucesso" }, { headers: corsHeaders });
     }
   } catch (error) {
-    console.error("API INTERESTS: Error processing POST", error);
-    return NextResponse.json({ error: "Failed to process interest" }, { status: 500 });
+    console.error(error);
+    return NextResponse.json({ error: "Failed to process interest" }, { status: 500, headers: corsHeaders });
   }
 }
 
 export async function OPTIONS() {
   return new NextResponse(null, {
     status: 204,
-    headers: {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
-    },
+    headers: corsHeaders,
   });
 }
