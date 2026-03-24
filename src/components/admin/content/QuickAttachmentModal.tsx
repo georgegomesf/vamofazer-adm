@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, Save, Loader2, Paperclip } from "lucide-react";
+import { X, Save, Loader2, Paperclip, Search } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import Button from "@/components/ui/button/Button";
 import { createAttachment } from "@/actions/attachments";
@@ -19,8 +19,10 @@ export default function QuickAttachmentModal({ isOpen, onClose, onSuccess, allAt
   const [activeTab, setActiveTab] = useState<"new" | "existing">("existing");
   const [loading, setLoading] = useState(false);
   const [detectedType, setDetectedType] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
   const [formData, setFormData] = useState({
     title: "",
+    description: "",
     url: "",
   });
 
@@ -34,7 +36,7 @@ export default function QuickAttachmentModal({ isOpen, onClose, onSuccess, allAt
     }
   }, [formData.url]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
@@ -46,12 +48,12 @@ export default function QuickAttachmentModal({ isOpen, onClose, onSuccess, allAt
     try {
       const result = await createAttachment(projectId, formData);
 
-      if (result.success) {
+      if (result.success && result.attachment) {
         onSuccess(result.attachment.id);
         onClose();
-        setFormData({ title: "", url: "" });
+        setFormData({ title: "", description: "", url: "" });
       } else {
-        alert("Erro ao salvar anexo: " + result.error);
+        alert("Erro ao salvar anexo: " + (result.error || "Erro desconhecido"));
       }
     } catch (error) {
       console.error("Error saving attachment:", error);
@@ -61,7 +63,11 @@ export default function QuickAttachmentModal({ isOpen, onClose, onSuccess, allAt
     }
   };
 
-  const availableAttachments = allAttachments.filter(res => !linkedAttachmentIds.includes(res.id));
+  const filteredAttachments = allAttachments
+    .filter(res => !linkedAttachmentIds.includes(res.id))
+    .filter(res => res.title.toLowerCase().includes(searchTerm.toLowerCase()));
+
+  const displayedAttachments = searchTerm ? filteredAttachments : filteredAttachments.slice(0, 5);
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="max-w-xl p-6">
@@ -91,8 +97,19 @@ export default function QuickAttachmentModal({ isOpen, onClose, onSuccess, allAt
 
       {activeTab === "existing" ? (
         <div className="space-y-4">
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Pesquisar anexos..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 text-sm rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none transition-all dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+            />
+          </div>
+
           <div className="max-h-[300px] overflow-y-auto pr-2 space-y-2 custom-scrollbar">
-            {availableAttachments.map((res) => (
+            {displayedAttachments.map((res) => (
               <button
                 key={res.id}
                 onClick={() => {
@@ -105,10 +122,15 @@ export default function QuickAttachmentModal({ isOpen, onClose, onSuccess, allAt
                 <span className="text-[10px] text-gray-500 uppercase tracking-tight">{res.type}</span>
               </button>
             ))}
-            {availableAttachments.length === 0 && (
+            {displayedAttachments.length === 0 && (
               <div className="py-8 text-center text-gray-500 italic text-sm">
-                Nenhum anexo disponível para vincular.
+                {searchTerm ? "Nenhum anexo encontrado para esta busca." : "Nenhum anexo disponível para vincular."}
               </div>
+            )}
+            {!searchTerm && filteredAttachments.length > 5 && (
+              <p className="text-[10px] text-center text-gray-400 pt-2 uppercase tracking-widest font-bold opacity-60">
+                Digite para buscar entre outros {filteredAttachments.length - 5} anexos
+              </p>
             )}
           </div>
         </div>
@@ -121,9 +143,20 @@ export default function QuickAttachmentModal({ isOpen, onClose, onSuccess, allAt
               name="title"
               value={formData.title}
               onChange={handleInputChange}
-              placeholder=""
               className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none transition-all dark:bg-gray-800 dark:border-gray-700 dark:text-white"
               required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Descrição <span className="text-gray-400 font-normal text-xs">(opcional)</span></label>
+            <textarea
+              name="description"
+              value={formData.description}
+              onChange={handleInputChange}
+              rows={3}
+              placeholder="Descreva o conteúdo..."
+              className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none transition-all dark:bg-gray-800 dark:border-gray-700 dark:text-white resize-none"
             />
           </div>
 

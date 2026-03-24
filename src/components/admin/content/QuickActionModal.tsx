@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, Save, Loader2, Calendar, Clock, ListTodo, Type, Building2, Globe } from "lucide-react";
+import { X, Save, Loader2, Calendar, Clock, ListTodo, Type, Building2, Globe, Search } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import Button from "@/components/ui/button/Button";
 import { createAction } from "@/actions/actions";
@@ -17,6 +17,7 @@ interface QuickActionModalProps {
 export default function QuickActionModal({ isOpen, onClose, onSuccess, allActions, linkedActionIds }: QuickActionModalProps) {
   const [activeTab, setActiveTab] = useState<"new" | "existing">("existing");
   const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const [formData, setFormData] = useState({
     title: "",
     type: "Atividade",
@@ -39,14 +40,20 @@ export default function QuickActionModal({ isOpen, onClose, onSuccess, allAction
     setLoading(true);
 
     try {
-      const result = await createAction(projectId, formData);
+      const submissionData = {
+        ...formData,
+        startDate: formData.startDate ? new Date(formData.startDate).toISOString() : null,
+        endDate: formData.endDate ? new Date(formData.endDate).toISOString() : null,
+      };
+      
+      const result = await createAction(projectId, submissionData);
 
-      if (result.success) {
+      if (result.success && result.action) {
         onSuccess(result.action.id, result.action.type);
         onClose();
         setFormData({ title: "", type: "Atividade", description: "", organizer: "", url: "", startDate: "", endDate: "" });
       } else {
-        alert("Erro ao salvar ação: " + result.error);
+        alert("Erro ao salvar ação: " + (result.error || "Erro desconhecido"));
       }
     } catch (error) {
       console.error("Error saving action:", error);
@@ -56,7 +63,11 @@ export default function QuickActionModal({ isOpen, onClose, onSuccess, allAction
     }
   };
 
-  const availableActions = allActions.filter(a => !linkedActionIds.includes(a.id));
+  const filteredActions = allActions
+    .filter(a => !linkedActionIds.includes(a.id))
+    .filter(a => a.title.toLowerCase().includes(searchTerm.toLowerCase()));
+
+  const displayedActions = searchTerm ? filteredActions : filteredActions.slice(0, 5);
 
   const getActionIcon = (type: string) => {
     switch (type) {
@@ -94,8 +105,19 @@ export default function QuickActionModal({ isOpen, onClose, onSuccess, allAction
 
       {activeTab === "existing" ? (
         <div className="space-y-4">
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Pesquisar ações..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 text-sm rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none transition-all dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+            />
+          </div>
+
           <div className="max-h-[300px] overflow-y-auto pr-2 space-y-2 custom-scrollbar">
-            {availableActions.map((action) => (
+            {displayedActions.map((action) => (
               <button
                 key={action.id}
                 onClick={() => {
@@ -119,10 +141,15 @@ export default function QuickActionModal({ isOpen, onClose, onSuccess, allAction
                 </div>
               </button>
             ))}
-            {availableActions.length === 0 && (
+            {displayedActions.length === 0 && (
               <div className="py-8 text-center text-gray-500 italic text-sm">
-                Nenhuma ação disponível para vincular.
+                {searchTerm ? "Nenhuma ação encontrada para esta busca." : "Nenhuma ação disponível para vincular."}
               </div>
+            )}
+            {!searchTerm && filteredActions.length > 5 && (
+              <p className="text-[10px] text-center text-gray-400 pt-2 uppercase tracking-widest font-bold opacity-60">
+                Digite para buscar entre outras {filteredActions.length - 5} ações
+              </p>
             )}
           </div>
         </div>

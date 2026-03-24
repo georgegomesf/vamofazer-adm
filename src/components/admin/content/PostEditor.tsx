@@ -6,7 +6,7 @@ import {
   Layout, ChevronLeft, Eye, Edit3, Trash2, Link as LinkIcon, Plus,
   X as CloseIcon, Clock, ListTodo, Type, Paperclip, Search
 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Button from "@/components/ui/button/Button";
 import { createPost, updatePost } from "@/actions/posts";
 import { getCategories } from "@/actions/categories";
@@ -23,6 +23,7 @@ interface PostEditorProps {
 
 export default function PostEditor({ post }: PostEditorProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
   const [allTags, setAllTags] = useState<any[]>([]);
@@ -49,6 +50,13 @@ export default function PostEditor({ post }: PostEditorProps) {
 
   const projectId = process.env.NEXT_PUBLIC_PROJECT_ID as string;
 
+  const formatToLocalDatetime = (dateString?: string | null) => {
+    if (!dateString) return null;
+    const d = new Date(dateString);
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
   useEffect(() => {
     fetchData();
     if (post) {
@@ -62,10 +70,43 @@ export default function PostEditor({ post }: PostEditorProps) {
         tagIds: post.tags?.filter((pt: any) => pt.tag).map((pt: any) => pt.tagId) || [],
         attachmentIds: post.attachments?.filter((pa: any) => pa.attachment).map((pa: any) => pa.attachmentId) || [],
         actionIds: post.actions?.filter((pa: any) => pa.action).map((pa: any) => pa.actionId) || [],
-        publishedAt: post.publishedAt ? new Date(post.publishedAt).toISOString().split('T')[0] : null,
+        publishedAt: formatToLocalDatetime(post.publishedAt) || null,
       });
+    } else {
+      // Pre-fill from import tool query params
+      const importTitle = searchParams.get("title") || "";
+      const importSummary = searchParams.get("summary") || "";
+      const importImageUrl = searchParams.get("imageUrl") || "";
+      const importEmbedUrl = searchParams.get("embedUrl") || "";
+      const importSourceUrl = searchParams.get("sourceUrl") || "";
+
+      if (importTitle) {
+        const generatedSlug = importTitle
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^\w\s-]/g, "")
+          .replace(/\s+/g, "-");
+
+        let initialContent = "";
+        if (importEmbedUrl) {
+          initialContent = `<iframe src="${importEmbedUrl}" width="100%" height="400" frameborder="0" allowfullscreen></iframe>\n\n`;
+        }
+        if (importSourceUrl) {
+          initialContent += `Fonte: [${importSourceUrl}](${importSourceUrl})`;
+        }
+
+        setFormData(prev => ({
+          ...prev,
+          title: importTitle,
+          slug: generatedSlug,
+          summary: importSummary,
+          imageUrl: importImageUrl,
+          content: initialContent,
+        }));
+      }
     }
-  }, [post]);
+  }, [post, searchParams]);
 
   async function fetchData() {
     const [cats, tags, atts, acts] = await Promise.all([
@@ -255,6 +296,24 @@ export default function PostEditor({ post }: PostEditorProps) {
         </div>
       </div>
 
+      {/* Import source banner */}
+      {!post && searchParams.get("sourceUrl") && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 text-sm">
+          <LinkIcon className="h-4 w-4 text-blue-500 flex-shrink-0" />
+          <span className="text-blue-700 dark:text-blue-300">
+            Postagem criada a partir de:{" "}
+            <a
+              href={searchParams.get("sourceUrl")!}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold underline hover:no-underline truncate max-w-xs inline-block align-bottom"
+            >
+              {searchParams.get("sourceUrl")}
+            </a>
+          </span>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <section className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900 overflow-hidden">
@@ -323,8 +382,8 @@ export default function PostEditor({ post }: PostEditorProps) {
             <div className="space-y-4">
               <div className="relative group aspect-video w-full overflow-hidden rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 flex items-center justify-center bg-gray-50 dark:bg-gray-800/50">
                 {formData.imageUrl ? (
-                  <div className="relative w-full h-full group">
-                    <img src={formData.imageUrl} alt="Cover Preview" className="w-full h-full object-cover" />
+                  <div className="relative w-full h-full group flex items-center justify-center">
+                    <img src={formData.imageUrl} alt="Cover Preview" className="w-full h-full object-contain object-center" />
                     <button
                       type="button"
                       onClick={() => setFormData(prev => ({ ...prev, imageUrl: "" }))}
@@ -570,7 +629,7 @@ export default function PostEditor({ post }: PostEditorProps) {
                 <div className="relative">
                   <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <input
-                    type="date"
+                    type="datetime-local"
                     name="publishedAt"
                     value={formData.publishedAt || ""}
                     onChange={handleInputChange}

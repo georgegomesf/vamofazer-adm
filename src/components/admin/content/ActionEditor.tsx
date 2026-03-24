@@ -29,6 +29,13 @@ export default function ActionEditor({ action }: ActionEditorProps) {
 
   const projectId = process.env.NEXT_PUBLIC_PROJECT_ID as string;
 
+  const formatToLocalDatetime = (dateString?: string) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  };
+
   useEffect(() => {
     if (action) {
       setFormData({
@@ -38,8 +45,8 @@ export default function ActionEditor({ action }: ActionEditorProps) {
         imageUrl: action.imageUrl || "",
         organizer: action.organizer || "",
         url: action.url || "",
-        startDate: action.startDate ? new Date(action.startDate).toISOString().slice(0, 16) : "",
-        endDate: action.endDate ? new Date(action.endDate).toISOString().slice(0, 16) : "",
+        startDate: formatToLocalDatetime(action.startDate),
+        endDate: formatToLocalDatetime(action.endDate),
       });
     }
   }, [action]);
@@ -74,8 +81,8 @@ export default function ActionEditor({ action }: ActionEditorProps) {
       let result;
       const submissionData = {
         ...formData,
-        startDate: formData.startDate || null,
-        endDate: formData.endDate || null,
+        startDate: formData.startDate ? new Date(formData.startDate).toISOString() : null,
+        endDate: formData.endDate ? new Date(formData.endDate).toISOString() : null,
       };
 
       if (action) {
@@ -87,7 +94,7 @@ export default function ActionEditor({ action }: ActionEditorProps) {
       if (result.success) {
         router.push("/adm/actions");
       } else {
-        alert("Erro ao salvar ação: " + result.error);
+        alert("Erro ao salvar ação: " + (result.error || "Erro desconhecido"));
       }
     } catch (error) {
       console.error("Error saving action:", error);

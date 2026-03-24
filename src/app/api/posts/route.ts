@@ -7,6 +7,8 @@ export async function GET(request: Request) {
     const projectId = searchParams.get("projectId") || undefined;
     const categorySlug = searchParams.get("categorySlug");
     
+    const search = searchParams.get("search") || undefined;
+    
     const limit = searchParams.get("limit") ? parseInt(searchParams.get("limit")!, 10) : undefined;
     const offset = searchParams.get("offset") ? parseInt(searchParams.get("offset")!, 10) : undefined;
 
@@ -22,6 +24,13 @@ export async function GET(request: Request) {
 
     const where = {
       ...(projectId ? { projectId } : {}),
+      ...(search ? {
+        OR: [
+          { title: { contains: search, mode: 'insensitive' } },
+          { summary: { contains: search, mode: 'insensitive' } },
+          { content: { contains: search, mode: 'insensitive' } },
+        ]
+      } : {}),
       publishedAt: {
         not: null,
         lte: new Date(),
@@ -121,7 +130,7 @@ export async function GET(request: Request) {
             tags: { include: { tag: true } },
             actions: { include: { action: true } },
           },
-          orderBy: { createdAt: "desc" },
+          orderBy: { publishedAt: "desc" },
         }),
         prisma.post.count({ where })
       ]);

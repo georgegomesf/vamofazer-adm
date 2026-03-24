@@ -107,7 +107,7 @@ export default function PostsPage() {
             <thead className="bg-gray-50 text-gray-600 dark:bg-gray-800/50 dark:text-gray-400">
               <tr>
                 <th className="px-6 py-4 font-medium min-w-[240px]">Postagem</th>
-                <th className="px-6 py-4 font-medium">Categoria / Tags</th>
+                <th className="px-6 py-4 font-medium">Categoria</th>
                 <th className="px-6 py-4 font-medium">Status</th>
                 <th className="px-6 py-4 font-medium">Publicação</th>
                 <th className="px-6 py-4 font-medium text-right w-20">Ações</th>
@@ -140,16 +140,10 @@ export default function PostsPage() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="max-w-[140px]">
-                      <div className="text-gray-900 dark:text-gray-300 truncate font-medium text-xs" title={post.category?.title || "-"}>
-                        {post.category?.title || "-"}
+                      <div className="text-gray-900 dark:text-gray-300 truncate font-medium text-xs" title={post.categories?.map((pc: any) => pc.category.title).join(", ") || "-"}>
+                        {post.categories?.map((pc: any) => pc.category.title).join(", ") || "-"}
                       </div>
-                      <div className="flex flex-wrap gap-0.5 mt-1">
-                        {post.tags?.map((pt: any) => (
-                          <span key={pt.tag.id} className="inline-flex items-center px-1 py-0.5 rounded text-[9px] font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400">
-                            {pt.tag.title}
-                          </span>
-                        ))}
-                      </div>
+
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">

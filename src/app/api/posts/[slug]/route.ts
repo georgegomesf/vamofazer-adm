@@ -30,6 +30,7 @@ export async function GET(
         },
         tags: { include: { tag: true } },
         actions: { include: { action: true } },
+        attachments: { include: { attachment: true } },
       },
     });
 

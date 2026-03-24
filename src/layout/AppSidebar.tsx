@@ -37,6 +37,8 @@ const navItems: NavItem[] = [
     subItems: [
       { name: "Anexos", path: "/adm/attachments" },
       { name: "Ações", path: "/adm/actions" },
+      { name: "Importar", path: "/adm/importar" },
+      { name: "Eventos - Anpof", path: "/adm/anpof" },
     ],
   },
   {

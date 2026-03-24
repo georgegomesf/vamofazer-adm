@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Save, Loader2, Paperclip, ChevronLeft } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Button from "@/components/ui/button/Button";
 import { createAttachment, updateAttachment } from "@/actions/attachments";
 import { getAttachmentTypeFromUrl } from "@/lib/attachment-utils";
@@ -13,11 +13,13 @@ interface AttachmentEditorProps {
 
 export default function AttachmentEditor({ attachment }: AttachmentEditorProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [detectedType, setDetectedType] = useState("");
 
   const [formData, setFormData] = useState({
     title: "",
+    description: "",
     url: "",
   });
 
@@ -27,11 +29,26 @@ export default function AttachmentEditor({ attachment }: AttachmentEditorProps) 
     if (attachment) {
       setFormData({
         title: attachment.title || "",
+        description: attachment.description || "",
         url: attachment.url || "",
       });
       setDetectedType(attachment.type || "");
+    } else {
+      // Pre-fill from import tool query params if available
+      const importTitle = searchParams.get("title");
+      const importDescription = searchParams.get("description");
+      const importUrl = searchParams.get("url");
+
+      if (importUrl) {
+        setFormData(prev => ({
+          ...prev,
+          title: importTitle || prev.title,
+          description: importDescription || prev.description,
+          url: importUrl,
+        }));
+      }
     }
-  }, [attachment]);
+  }, [attachment, searchParams]);
 
   useEffect(() => {
     if (formData.url) {
@@ -41,7 +58,7 @@ export default function AttachmentEditor({ attachment }: AttachmentEditorProps) 
     }
   }, [formData.url]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
@@ -112,6 +129,18 @@ export default function AttachmentEditor({ attachment }: AttachmentEditorProps) 
                 placeholder="Ex: Aula sobre Platão"
                 className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none transition-all dark:bg-gray-800 dark:border-gray-700 dark:text-white"
                 required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Descrição <span className="text-gray-400 font-normal text-xs">(opcional)</span></label>
+              <textarea
+                name="description"
+                value={formData.description}
+                onChange={handleInputChange}
+                rows={3}
+                placeholder="Descreva o conteúdo deste anexo..."
+                className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none transition-all dark:bg-gray-800 dark:border-gray-700 dark:text-white resize-none"
               />
             </div>
 
