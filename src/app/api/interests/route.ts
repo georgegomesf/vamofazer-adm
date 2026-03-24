@@ -29,9 +29,9 @@ export async function GET(request: Request) {
     });
 
     // Map to the format expected by the frontend cart/interest slice
-    const items = interests.map((interest) => {
+    const items = interests.map((interest: any) => {
         const post = interest.post;
-        const mainEventAction = post.actions.find(act => act.action.type === "Evento")?.action;
+        const mainEventAction = post.actions.find((act: any) => act.action.type === "Evento")?.action;
 
         return {
             id: post.id,
