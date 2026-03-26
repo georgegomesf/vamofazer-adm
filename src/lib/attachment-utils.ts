@@ -20,6 +20,10 @@ export function getAttachmentTypeFromUrl(url: string): string {
       return 'Perfil do Instagram';
     }
 
+    if (host === 'docs.google.com' && path.startsWith('/forms/')) {
+      return 'Formulário Google';
+    }
+
     if (host === 'drive.google.com' || host === 'docs.google.com') {
       if (path.includes('/drive/folders/')) {
         return 'Pasta do Google Drive';
@@ -48,6 +52,9 @@ export function getAttachmentTypeFromUrl(url: string): string {
   if (urlLower.includes('instagram.com/')) {
     return 'Perfil do Instagram';
   }
+  if (urlLower.includes('docs.google.com/forms/')) {
+    return 'Formulário Google';
+  }
   if (urlLower.includes('drive.google.com') && urlLower.includes('folders')) {
     return 'Pasta do Google Drive';
   }
@@ -58,5 +65,5 @@ export function getAttachmentTypeFromUrl(url: string): string {
     return 'Arquivo PDF';
   }
 
-  return 'Arquivo do Google Drive'; // User might be passing a link without drive.google.com but still mean it? No, generic default is better.
+  return 'Link';
 }

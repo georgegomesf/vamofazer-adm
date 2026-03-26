@@ -3,9 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { createActivity } from "@/actions/activities";
 
 const corsHeaders = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
 };
 
 export async function GET(request: Request) {
@@ -31,7 +31,7 @@ export async function GET(request: Request) {
         list: true,
         post: {
           include: {
-            categories: { 
+            categories: {
               include: { category: true },
               where: { category: { isVisible: true } }
             },
@@ -44,31 +44,31 @@ export async function GET(request: Request) {
     });
 
     const items = interests.map((interest: any) => {
-        const post = interest.post;
-        if (!post) return null;
-        
-        const mainEventAction = post.actions.find((act: any) => act.action.type === "Evento")?.action;
+      const post = interest.post;
+      if (!post) return null;
 
-        return {
-            id: post.id,
-            title: post.title,
-            slug: post.slug,
-            summary: post.summary,
-            imageUrl: post.imageUrl,
-            img: post.imageUrl || "", 
-            imgs: {
-                thumbnails: [post.imageUrl || ""],
-                previews: [post.imageUrl || ""]
-            },
-            date: post.publishedAt ? new Date(post.publishedAt).toLocaleDateString() : "",
-            eventDate: mainEventAction?.startDate,
-            eventEndDate: mainEventAction?.endDate,
-            hasEvent: !!mainEventAction,
-            listId: interest.listId,
-            listName: interest.list?.name || "Minha Lista",
-            quantity: 1,
-            post: post 
-        };
+      const mainEventAction = post.actions.find((act: any) => act.action.type === "Evento")?.action;
+
+      return {
+        id: post.id,
+        title: post.title,
+        slug: post.slug,
+        summary: post.summary,
+        imageUrl: post.imageUrl,
+        img: post.imageUrl || "",
+        imgs: {
+          thumbnails: [post.imageUrl || ""],
+          previews: [post.imageUrl || ""]
+        },
+        date: post.publishedAt ? new Date(post.publishedAt).toLocaleDateString() : "",
+        eventDate: mainEventAction?.startDate,
+        eventEndDate: mainEventAction?.endDate,
+        hasEvent: !!mainEventAction,
+        listId: interest.listId,
+        listName: interest.list?.name || "Minha Lista",
+        quantity: 1,
+        post: post
+      };
     }).filter(Boolean);
 
     return NextResponse.json({ interests: items }, { headers: corsHeaders });
@@ -104,7 +104,7 @@ export async function POST(request: Request) {
       await prisma.userInterest.delete({ where });
       return NextResponse.json({ action: "removed", message: "Interesse removido com sucesso" }, { headers: corsHeaders });
     } else {
-      const interest = await prisma.userInterest.create({ 
+      const interest = await prisma.userInterest.create({
         data: { userId, postId, projectId, listId },
         include: { post: true, list: true }
       });
@@ -112,7 +112,7 @@ export async function POST(request: Request) {
       // Create Activity: Item Added
       await createActivity(projectId, {
         type: "ITEM_ADDED",
-        title: `Item adicionado: ${interest.post.title}`,
+        title: `${interest.post.title}`,
         description: `O item "${interest.post.title}" foi adicionado à lista "${interest.list?.name}".`,
         url: `/p/${interest.post.slug}`,
         userId,

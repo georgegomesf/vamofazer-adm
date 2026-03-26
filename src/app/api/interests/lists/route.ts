@@ -62,8 +62,16 @@ export async function POST(request: Request) {
       data: { userId, projectId, name, description, isPublic: !!isPublic }
     });
 
-    // Create Activity: Only if created as public
+    // Create Activity: Only if created as public.
+    // Delete any previous LIST_CREATED for this list first to avoid duplicates.
     if (list.isPublic) {
+      await prisma.activity.deleteMany({
+        where: {
+          type: "LIST_CREATED",
+          projectId,
+          metadata: { path: ["listId"], equals: list.id }
+        }
+      });
       await createActivity(projectId, {
         type: "LIST_CREATED",
         title: `${list.name}`,
@@ -118,8 +126,16 @@ export async function PATCH(request: Request) {
     const oldList = await prisma.interestList.findUnique({ where: { id } });
     const list = await prisma.interestList.update({ where: { id }, data });
 
-    // Trigger activity only if it became public now
+    // Trigger activity only when list becomes public.
+    // Delete any previous LIST_CREATED for this list first to avoid duplicates.
     if (list.isPublic && (!oldList || !oldList.isPublic)) {
+      await prisma.activity.deleteMany({
+        where: {
+          type: "LIST_CREATED",
+          projectId: list.projectId,
+          metadata: { path: ["listId"], equals: list.id }
+        }
+      });
       await createActivity(list.projectId, {
         type: "LIST_CREATED",
         title: `${list.name}`,

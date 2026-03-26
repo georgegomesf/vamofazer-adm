@@ -14,11 +14,13 @@ export async function GET(request: Request) {
     const limit = parseInt(searchParams.get("limit") || "50", 10);
     const page = parseInt(searchParams.get("page") || "1", 10);
 
+    const userId = searchParams.get("userId") || undefined;
+
     if (!projectId) {
       return NextResponse.json({ error: "projectId is required" }, { status: 400, headers: corsHeaders });
     }
 
-    const activities = await getActivities(projectId, limit, page);
+    const activities = await getActivities(projectId, limit, page, userId);
     return NextResponse.json({ activities }, { headers: corsHeaders });
   } catch (error) {
     console.error(error);
