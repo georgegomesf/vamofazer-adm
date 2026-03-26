@@ -67,6 +67,7 @@ model Project {
   UserInterest UserInterest[]
   InterestList InterestList[]
   AnpofEvent        AnpofEvent[]
+  Activity          Activity[]
 }
 
 model Session {
@@ -95,6 +96,7 @@ model User {
   UserProject   UserProject[]
   UserInterest UserInterest[]
   InterestList InterestList[]
+  Activity     Activity[]
 }
 
 model UserProject {
@@ -311,4 +313,22 @@ model AnpofEvent {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model Activity {
+  id          String   @id @default(cuid())
+  type        String   // "POST_PUBLISHED", "ACTION_LINKED", "ATTACHMENT_LINKED", "LIST_CREATED", "ITEM_ADDED", "NOTICE"
+  title       String
+  description String?
+  url         String?
+  projectId   String
+  userId      String?
+  createdAt   DateTime @default(now())
+  metadata    Json?    // For extra context (image, action dates, etc.)
+
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([projectId])
+  @@index([createdAt])
 }

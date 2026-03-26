@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { createActivity } from "@/actions/activities";
 
 const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
@@ -103,7 +104,21 @@ export async function POST(request: Request) {
       await prisma.userInterest.delete({ where });
       return NextResponse.json({ action: "removed", message: "Interesse removido com sucesso" }, { headers: corsHeaders });
     } else {
-      await prisma.userInterest.create({ data: { userId, postId, projectId, listId } });
+      const interest = await prisma.userInterest.create({ 
+        data: { userId, postId, projectId, listId },
+        include: { post: true, list: true }
+      });
+
+      // Create Activity: Item Added
+      await createActivity(projectId, {
+        type: "ITEM_ADDED",
+        title: `Item adicionado: ${interest.post.title}`,
+        description: `O item "${interest.post.title}" foi adicionado à lista "${interest.list?.name}".`,
+        url: `/p/${interest.post.slug}`,
+        userId,
+        metadata: { postId, listId }
+      });
+
       return NextResponse.json({ action: "added", message: "Interesse adicionado com sucesso" }, { headers: corsHeaders });
     }
   } catch (error) {

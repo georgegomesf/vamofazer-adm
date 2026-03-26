@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { createActivity } from "@/actions/activities";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -25,7 +26,7 @@ export async function GET(request: Request) {
 
       if (!list) return NextResponse.json({ error: "List not found" }, { status: 404, headers: corsHeaders });
       if (!list.isPublic && (userId ? list.userId !== userId : true)) {
-          if (!list.isPublic) return NextResponse.json({ error: "Private list" }, { status: 403, headers: corsHeaders });
+        if (!list.isPublic) return NextResponse.json({ error: "Private list" }, { status: 403, headers: corsHeaders });
       }
 
       return NextResponse.json({ list }, { headers: corsHeaders });
@@ -61,10 +62,22 @@ export async function POST(request: Request) {
       data: { userId, projectId, name, description, isPublic: !!isPublic }
     });
 
+    // Create Activity: Only if created as public
+    if (list.isPublic) {
+      await createActivity(projectId, {
+        type: "LIST_CREATED",
+        title: `${list.name}`,
+        description: `${list.description ?? ''}`,
+        url: `/l/${list.id}`,
+        userId,
+        metadata: { listId: list.id }
+      });
+    }
+
     return NextResponse.json({ list, message: "Lista criada com sucesso" }, { headers: corsHeaders });
   } catch (error: any) {
     if (error.code === 'P2002') {
-        return NextResponse.json({ error: "Você já possui uma lista com este nome." }, { status: 400, headers: corsHeaders });
+      return NextResponse.json({ error: "Você já possui uma lista com este nome." }, { status: 400, headers: corsHeaders });
     }
     console.error(error);
     return NextResponse.json({ error: "Failed to create list" }, { status: 500, headers: corsHeaders });
@@ -89,28 +102,42 @@ export async function DELETE(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-    try {
-      const body = await request.json();
-      const { id, name, description, isPublic } = body;
-  
-      if (!id) {
-        return NextResponse.json({ error: "ID is required" }, { status: 400, headers: corsHeaders });
-      }
-  
-      const data: any = {};
-      if (typeof name === "string") data.name = name;
-      if (typeof description === "string" || description === null) data.description = description;
-      if (typeof isPublic === "boolean") data.isPublic = isPublic;
+  try {
+    const body = await request.json();
+    const { id, name, description, isPublic } = body;
 
-      const list = await prisma.interestList.update({ where: { id }, data });
-      return NextResponse.json({ list, message: "Lista atualizada com sucesso" }, { headers: corsHeaders });
-    } catch (error: any) {
-      if (error.code === 'P2002') {
-        return NextResponse.json({ error: "Você já possui uma lista com este nome." }, { status: 400, headers: corsHeaders });
-      }
-      console.error(error);
-      return NextResponse.json({ error: "Failed to update list" }, { status: 500, headers: corsHeaders });
+    if (!id) {
+      return NextResponse.json({ error: "ID is required" }, { status: 400, headers: corsHeaders });
     }
+
+    const data: any = {};
+    if (typeof name === "string") data.name = name;
+    if (typeof description === "string" || description === null) data.description = description;
+    if (typeof isPublic === "boolean") data.isPublic = isPublic;
+
+    const oldList = await prisma.interestList.findUnique({ where: { id } });
+    const list = await prisma.interestList.update({ where: { id }, data });
+
+    // Trigger activity only if it became public now
+    if (list.isPublic && (!oldList || !oldList.isPublic)) {
+      await createActivity(list.projectId, {
+        type: "LIST_CREATED",
+        title: `${list.name}`,
+        description: `${list.description ?? ''}`,
+        url: `/l/${list.id}`,
+        userId: list.userId,
+        metadata: { listId: list.id }
+      });
+    }
+
+    return NextResponse.json({ list, message: "Lista atualizada com sucesso" }, { headers: corsHeaders });
+  } catch (error: any) {
+    if (error.code === 'P2002') {
+      return NextResponse.json({ error: "Você já possui uma lista com este nome." }, { status: 400, headers: corsHeaders });
+    }
+    console.error(error);
+    return NextResponse.json({ error: "Failed to update list" }, { status: 500, headers: corsHeaders });
+  }
 }
 
 export async function OPTIONS() {

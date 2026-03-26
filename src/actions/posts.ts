@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { deleteImage } from "./upload";
 import { revalidatePath } from "next/cache";
+import { createActivity } from "./activities";
 
 export async function getPosts(projectId: string) {
   try {
@@ -83,6 +84,53 @@ export async function createPost(projectId: string, data: any) {
       },
     });
     console.log("Server: Post created successfully:", post.id);
+
+    // Create Activity: Post Published
+    if (post.publishedAt) {
+      await createActivity(projectId, {
+        type: "POST_PUBLISHED",
+        title: post.title,
+        description: "Uma nova postagem foi publicada.",
+        url: `/p/${post.slug}`,
+        userId: post.createdBy || undefined,
+        metadata: { postId: post.id, imageUrl: post.imageUrl }
+      });
+    }
+
+    // Create Activity: Actions Linked
+    if (actionIds?.length > 0) {
+      for (const actionId of actionIds) {
+        const action = await prisma.action.findUnique({ where: { id: actionId } });
+        if (action) {
+          await createActivity(projectId, {
+            type: "ACTION_LINKED",
+            title: `Ação vinculada: ${action.title}`,
+            description: `A ação "${action.title}" foi vinculada à postagem "${post.title}".`,
+            url: `/p/${post.slug}`,
+            userId: post.createdBy || undefined,
+            metadata: { postId: post.id, actionId: action.id }
+          });
+        }
+      }
+    }
+
+    // Create Activity: Attachments Linked
+    if (attachmentIds?.length > 0) {
+      for (const attachmentId of attachmentIds) {
+        const attachment = await prisma.attachment.findUnique({ where: { id: attachmentId } });
+        if (attachment) {
+          await createActivity(projectId, {
+            type: "ATTACHMENT_LINKED",
+            title: `Anexo vinculado: ${attachment.title}`,
+            description: `O anexo "${attachment.title}" foi vinculado à postagem "${post.title}".`,
+            url: `/p/${post.slug}`,
+            userId: post.createdBy || undefined,
+            metadata: { postId: post.id, attachmentId: attachment.id }
+          });
+        }
+      }
+    }
+
     revalidatePath("/adm/posts");
     return { success: true, post };
   } catch (error: any) {
@@ -139,7 +187,56 @@ export async function updatePost(id: string, data: any) {
         }
       },
     });
+
     console.log("Server: Post updated successfully:", post.id);
+
+    // Create Activity: Post Published (if recently published)
+    if (post.publishedAt) {
+      // Check if it's "newly" published? For now, we report updates that are published.
+      await createActivity(post.projectId, {
+        type: "POST_PUBLISHED",
+        title: post.title,
+        description: "Postagem atualizada e disponível no portal.",
+        url: `/p/${post.slug}`,
+        userId: post.updatedBy || undefined,
+        metadata: { postId: post.id, imageUrl: post.imageUrl }
+      });
+    }
+
+    // Create Activity: Actions Linked
+    if (actionIds?.length > 0) {
+      for (const actionId of actionIds) {
+        const action = await prisma.action.findUnique({ where: { id: actionId } });
+        if (action) {
+          await createActivity(post.projectId, {
+            type: "ACTION_LINKED",
+            title: `Ação vinculada: ${action.title}`,
+            description: `A ação "${action.title}" foi vinculada à postagem "${post.title}".`,
+            url: `/p/${post.slug}`,
+            userId: post.updatedBy || undefined,
+            metadata: { postId: post.id, actionId: action.id }
+          });
+        }
+      }
+    }
+
+    // Create Activity: Attachments Linked
+    if (attachmentIds?.length > 0) {
+      for (const attachmentId of attachmentIds) {
+        const attachment = await prisma.attachment.findUnique({ where: { id: attachmentId } });
+        if (attachment) {
+          await createActivity(post.projectId, {
+            type: "ATTACHMENT_LINKED",
+            title: `Anexo vinculado: ${attachment.title}`,
+            description: `O anexo "${attachment.title}" foi vinculado à postagem "${post.title}".`,
+            url: `/p/${post.slug}`,
+            userId: post.updatedBy || undefined,
+            metadata: { postId: post.id, attachmentId: attachment.id }
+          });
+        }
+      }
+    }
+
     revalidatePath("/adm/posts");
     revalidatePath(`/adm/posts/${id}`);
     return { success: true, post };
