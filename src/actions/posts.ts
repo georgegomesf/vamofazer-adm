@@ -125,7 +125,7 @@ export async function createPost(projectId: string, data: any) {
         if (attachment) {
           await createActivity(projectId, {
             type: "ATTACHMENT_LINKED",
-            title: `nexo vinculado: ${attachment.title}`,
+            title: `${attachment.title}`,
             description: `O anexo foi vinculado à postagem "${post.title}".`,
             url: `/p/${post.slug}`,
             userId: post.createdBy || undefined,
