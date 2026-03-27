@@ -162,13 +162,13 @@ export default function PostsPage() {
                           <span>{(() => {
                             const val = post.publishedAt;
                             const d = (typeof val === 'string' && !val.includes('Z') && !val.includes('+')) ? new Date(val + 'Z') : new Date(val);
-                            return d.toLocaleDateString("pt-BR");
+                            return d.toLocaleDateString("pt-BR", { timeZone: 'UTC' });
                           })()}</span>
                           <span className="text-[10px] opacity-70">
                             {(() => {
                               const val = post.publishedAt;
                               const d = (typeof val === 'string' && !val.includes('Z') && !val.includes('+')) ? new Date(val + 'Z') : new Date(val);
-                              return d.toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' });
+                              return d.toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
                             })()}
                           </span>
                         </div>

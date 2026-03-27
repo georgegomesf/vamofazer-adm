@@ -142,13 +142,13 @@ export default function ActionsPage() {
                       {action.startDate && (
                         <span className="flex items-center gap-1">
                           <span className="font-semibold uppercase text-[10px] text-gray-400 w-8">De:</span>
-                          {new Date(action.startDate).toLocaleString()}
+                          {new Date(action.startDate).toLocaleString('pt-BR', { timeZone: 'UTC' })}
                         </span>
                       )}
                       {action.endDate && (
                         <span className="flex items-center gap-1 mt-0.5">
                           <span className="font-semibold uppercase text-[10px] text-gray-400 w-8">Até:</span>
-                          {new Date(action.endDate).toLocaleString()}
+                          {new Date(action.endDate).toLocaleString('pt-BR', { timeZone: 'UTC' })}
                         </span>
                       )}
                       {!action.startDate && !action.endDate && <span className="text-gray-400 italic">Sem data</span>}
