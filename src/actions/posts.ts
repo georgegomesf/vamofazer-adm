@@ -94,7 +94,7 @@ export async function createPost(projectId: string, data: any) {
       await createActivity(projectId, {
         type: "POST_PUBLISHED",
         title: post.title,
-        description: "Uma nova postagem foi publicada.",
+        description: post.summary ? (post.summary.length > 200 ? post.summary.substring(0, 197) + "..." : post.summary) : "Uma nova postagem foi publicada.",
         url: `/p/${post.slug}`,
         userId: post.createdBy || undefined,
         metadata: { postId: post.id, imageUrl: post.imageUrl }
@@ -109,7 +109,7 @@ export async function createPost(projectId: string, data: any) {
           await createActivity(projectId, {
             type: "ACTION_LINKED",
             title: `${action.title}`,
-            description: `A ação "${action.title}" foi vinculada à postagem "${post.title}".`,
+            description: `O item foi vinculado à postagem ${post.title}`,
             url: `/p/${post.slug}`,
             userId: post.createdBy || undefined,
             metadata: { postId: post.id, actionId: action.id }
@@ -204,7 +204,7 @@ export async function updatePost(id: string, data: any) {
       await createActivity(post.projectId, {
         type: "POST_PUBLISHED",
         title: post.title,
-        description: "Uma nova postagem foi publicada.",
+        description: post.summary ? (post.summary.length > 200 ? post.summary.substring(0, 197) + "..." : post.summary) : "Uma nova postagem foi publicada.",
         url: `/p/${post.slug}`,
         userId: post.updatedBy || undefined,
         metadata: { postId: post.id, imageUrl: post.imageUrl }
@@ -219,7 +219,7 @@ export async function updatePost(id: string, data: any) {
         await createActivity(post.projectId, {
           type: "ACTION_LINKED",
           title: `${action.title}`,
-          description: `A ação "${action.title}" foi vinculada à postagem "${post.title}".`,
+          description: `O item foi vinculada à postagem "${post.title}".`,
           url: `/p/${post.slug}`,
           userId: post.updatedBy || undefined,
           metadata: { postId: post.id, actionId: action.id }
