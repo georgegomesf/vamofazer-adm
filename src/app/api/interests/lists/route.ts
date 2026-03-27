@@ -75,7 +75,7 @@ export async function POST(request: Request) {
       await createActivity(projectId, {
         type: "LIST_CREATED",
         title: `${list.name}`,
-        description: `${list.description ?? ''}`,
+        description: list.description || "Uma nova lista foi publicada.",
         url: `/l/${list.id}`,
         userId,
         metadata: { listId: list.id }
@@ -139,7 +139,7 @@ export async function PATCH(request: Request) {
       await createActivity(list.projectId, {
         type: "LIST_CREATED",
         title: `${list.name}`,
-        description: `${list.description ?? ''}`,
+        description: list.description || "Uma nova lista foi criada.",
         url: `/l/${list.id}`,
         userId: list.userId,
         metadata: { listId: list.id }
