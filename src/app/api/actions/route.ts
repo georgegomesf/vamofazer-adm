@@ -24,7 +24,15 @@ export async function GET(request: Request) {
       include: {
         posts: {
           include: {
-            post: true,
+            post: {
+              include: {
+                actions: {
+                  include: {
+                    action: true
+                  }
+                }
+              }
+            },
           },
         },
       },
