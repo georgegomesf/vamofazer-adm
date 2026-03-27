@@ -193,33 +193,57 @@ export async function getActivities(projectId: string, limit: number = 50, page:
     // Combine
     let combined = [...activities, ...linkedActivities, ...notices];
 
-    // Enrichment: Attach imageUrl from related posts if missing in metadata but postId is present
-    const postIdsForEnrichment = combined
-      .map((a: any) => a.metadata?.postId)
-      .filter((id): id is string => typeof id === 'string' && !!id);
+    // Enrichment: Synchronize titles, descriptions and URLs with current data from source entities
+    const postIds = new Set<string>();
+    const actionIds = new Set<string>();
+    const attachmentIds = new Set<string>();
 
-    if (postIdsForEnrichment.length > 0) {
-      const postsWithImages = await prisma.post.findMany({
-        where: { id: { in: postIdsForEnrichment } },
-        select: { id: true, imageUrl: true }
-      });
+    combined.forEach((a: any) => {
+      const { postId, actionId, attachmentId } = a.metadata || {};
+      if (postId) postIds.add(postId);
+      if (actionId) actionIds.add(actionId);
+      if (attachmentId) attachmentIds.add(attachmentId);
+    });
 
-      const imageMap = new Map(postsWithImages.map(p => [p.id, p.imageUrl]));
+    const [posts, actions, attachments] = await Promise.all([
+      postIds.size > 0 ? prisma.post.findMany({ where: { id: { in: Array.from(postIds) } }, select: { id: true, title: true, slug: true, imageUrl: true } }) : [],
+      actionIds.size > 0 ? prisma.action.findMany({ where: { id: { in: Array.from(actionIds) } }, select: { id: true, title: true, url: true, imageUrl: true } }) : [],
+      attachmentIds.size > 0 ? prisma.attachment.findMany({ where: { id: { in: Array.from(attachmentIds) } }, select: { id: true, title: true, url: true } }) : [],
+    ]);
 
-      combined = combined.map((a: any) => {
-        const postId = a.metadata?.postId;
-        if (postId && !a.metadata?.imageUrl && imageMap.has(postId)) {
-          return {
-            ...a,
-            metadata: {
-              ...a.metadata,
-              imageUrl: imageMap.get(postId)
-            }
-          };
-        }
-        return a;
-      });
-    }
+    const postMap = new Map(posts.map(p => [p.id, p]));
+    const actionMap = new Map(actions.map(a => [a.id, a]));
+    const attachmentMap = new Map(attachments.map(at => [at.id, at]));
+
+    combined = combined.map((a: any) => {
+      const { postId, actionId, attachmentId } = a.metadata || {};
+      let updated = { ...a };
+
+      // 1. Resolve Action and Attachment basic data
+      if (actionId && actionMap.has(actionId)) {
+        const act = actionMap.get(actionId)!;
+        updated.title = updated.type === "ACTION_LINKED" || updated.type === "NOTICE" ? act.title : updated.title;
+        updated.url = act.url || updated.url;
+        updated.metadata = { ...updated.metadata, imageUrl: act.imageUrl || updated.metadata?.imageUrl };
+      }
+
+      if (attachmentId && attachmentMap.has(attachmentId)) {
+        const att = attachmentMap.get(attachmentId)!;
+        updated.title = updated.type === "ATTACHMENT_LINKED" ? att.title : updated.title;
+        updated.url = att.url || updated.url;
+      }
+
+      // 2. Overwrite with Post data if available (Internal priority)
+      if (postId && postMap.has(postId)) {
+        const p = postMap.get(postId)!;
+        updated.title = updated.type === "POST_PUBLISHED" ? p.title : updated.title;
+        // Always point to internal post URL if attached to a post
+        updated.url = `/p/${p.slug}`;
+        updated.metadata = { ...updated.metadata, imageUrl: p.imageUrl || updated.metadata?.imageUrl };
+      }
+
+      return updated;
+    });
 
     // If publicOnly is true, filter out items linked to unpublished posts
     if (publicOnly) {
