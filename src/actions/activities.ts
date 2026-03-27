@@ -194,10 +194,36 @@ export async function getActivities(projectId: string, limit: number = 50, page:
       });
     }
 
-    // Combine and sort
-    const combined = [...activities, ...linkedActivities, ...notices].sort((a, b) =>
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
+    // Combine
+    let combined = [...activities, ...linkedActivities, ...notices];
+
+    // If userId is provided, attach 'viewed' status
+    if (userId) {
+      const viewedRecords = await prisma.activityView.findMany({
+        where: {
+          userId,
+          activityId: { in: combined.map(a => a.id) }
+        },
+        select: { activityId: true }
+      });
+      const viewedIds = new Set(viewedRecords.map(v => v.activityId));
+      combined = combined.map(a => ({
+        ...a,
+        viewed: viewedIds.has(a.id)
+      }));
+    }
+
+    // Sort: unviewed first, then by date (most recent)
+    // Actually the user said "jogada para depois das mensagens não vistas"
+    // So unviewed first, then viewed.
+    combined.sort((a, b) => {
+      // Unviewed (false) comes first
+      if (a.viewed !== b.viewed) {
+        return a.viewed ? 1 : -1;
+      }
+      // Then date
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
 
     return combined;
   } catch (error) {
