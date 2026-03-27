@@ -126,7 +126,7 @@ export async function createPost(projectId: string, data: any) {
           await createActivity(projectId, {
             type: "ATTACHMENT_LINKED",
             title: `nexo vinculado: ${attachment.title}`,
-            description: `O anexo "${attachment.title}" foi vinculado à postagem "${post.title}".`,
+            description: `O anexo foi vinculado à postagem "${post.title}".`,
             url: `/p/${post.slug}`,
             userId: post.createdBy || undefined,
             metadata: { postId: post.id, attachmentId: attachment.id }
@@ -235,7 +235,7 @@ export async function updatePost(id: string, data: any) {
         await createActivity(post.projectId, {
           type: "ATTACHMENT_LINKED",
           title: `${attachment.title}`,
-          description: `O anexo "${attachment.title}" foi vinculado à postagem "${post.title}".`,
+          description: `O anexo foi vinculado à postagem "${post.title}".`,
           url: `/p/${post.slug}`,
           userId: post.updatedBy || undefined,
           metadata: { postId: post.id, attachmentId: attachment.id }

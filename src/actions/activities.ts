@@ -83,8 +83,6 @@ export async function getActivities(projectId: string, limit: number = 50, page:
     const activities = await prisma.activity.findMany({
       where: {
         projectId,
-        NOT: { type: { in: ["ACTION_LINKED", "ATTACHMENT_LINKED"] as any } },
-        ...({} as any) // workaround – real filter below via OR
       },
       include: {
         user: {
@@ -106,25 +104,7 @@ export async function getActivities(projectId: string, limit: number = 50, page:
       skip,
     });
 
-    // Fetch matching ACTION_LINKED / ATTACHMENT_LINKED separately (if user has favorites)
-    let linkedActivities: typeof activities = [];
-    if (favoritedPostIds && favoritedPostIds.length > 0) {
-      linkedActivities = await prisma.activity.findMany({
-        where: {
-          projectId,
-          type: { in: ["ACTION_LINKED", "ATTACHMENT_LINKED"] as any },
-        },
-        include: {
-          user: { select: { name: true, image: true, id: true } },
-          project: { select: { logoUrl: true, name: true } }
-        },
-        orderBy: { createdAt: "desc" },
-      }) as typeof activities;
-
-      // filter in memory by metadata.postId in favoritedPostIds
-      const favSet = new Set(favoritedPostIds);
-      linkedActivities = linkedActivities.filter((a: any) => favSet.has(a?.metadata?.postId));
-    }
+    let linkedActivities: any[] = []; // No longer needed as separate fetch
 
     // Add dynamic notices for actions
     const notices: any[] = [];
