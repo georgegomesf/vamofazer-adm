@@ -52,7 +52,7 @@ export async function createActivity(projectId: string, data: {
   }
 }
 
-export async function getActivities(projectId: string, limit: number = 50, page: number = 1, userId?: string) {
+export async function getActivities(projectId: string, limit: number = 50, page: number = 1, userId?: string, publicOnly: boolean = false) {
   try {
     const skip = (page - 1) * limit;
 
@@ -182,7 +182,7 @@ export async function getActivities(projectId: string, limit: number = 50, page:
             id: `notice-progress-${action.id}`,
             type: "NOTICE",
             title: `${action.title}`,
-            description: "Em andamento.",
+            description: null,
             projectId,
             createdAt: start, // Use start date for ordering
             isSystem: true,
@@ -196,6 +196,35 @@ export async function getActivities(projectId: string, limit: number = 50, page:
 
     // Combine
     let combined = [...activities, ...linkedActivities, ...notices];
+
+    // If publicOnly is true, filter out items linked to unpublished posts
+    if (publicOnly) {
+      // Extract all postIds from metadata
+      const postIdsToCheck = combined
+        .map((a: any) => a.metadata?.postId)
+        .filter((id): id is string => typeof id === 'string');
+
+      if (postIdsToCheck.length > 0) {
+        // Fetch published posts
+        const publishedPosts = await prisma.post.findMany({
+          where: {
+            id: { in: postIdsToCheck },
+            publishedAt: { not: null }
+          },
+          select: { id: true }
+        });
+        const publishedIds = new Set(publishedPosts.map(p => p.id));
+
+        // Filter: Keep if it doesn't have a postId or if the postId is in publishedIds
+        combined = combined.filter((a: any) => {
+          const postId = a.metadata?.postId;
+          if (postId && typeof postId === 'string') {
+            return publishedIds.has(postId);
+          }
+          return true; // Keep system notices or activities without postId
+        });
+      }
+    }
 
     // If userId is provided, attach 'viewed' status
     if (userId) {
@@ -229,5 +258,24 @@ export async function getActivities(projectId: string, limit: number = 50, page:
   } catch (error) {
     console.error("Error fetching activities:", error);
     return [];
+  }
+}
+
+export async function markActivitiesAsViewed(userId: string, activityIds: string[]) {
+  try {
+    const data = activityIds.map(activityId => ({
+      userId,
+      activityId,
+    }));
+
+    await prisma.activityView.createMany({
+      data,
+      skipDuplicates: true,
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error marking activities as viewed:", error);
+    return { success: false, error };
   }
 }
