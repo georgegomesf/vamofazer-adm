@@ -33,7 +33,7 @@ export default function ActionEditor({ action }: ActionEditorProps) {
     if (!dateString) return "";
     const date = new Date(dateString);
     const pad = (n: number) => n.toString().padStart(2, '0');
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())}T${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}`;
   };
 
   useEffect(() => {
@@ -81,8 +81,8 @@ export default function ActionEditor({ action }: ActionEditorProps) {
       let result;
       const submissionData = {
         ...formData,
-        startDate: formData.startDate ? new Date(formData.startDate).toISOString() : null,
-        endDate: formData.endDate ? new Date(formData.endDate).toISOString() : null,
+        startDate: formData.startDate ? new Date(formData.startDate + (formData.startDate.includes("Z") ? "" : "Z")).toISOString() : null,
+        endDate: formData.endDate ? new Date(formData.endDate + (formData.endDate.includes("Z") ? "" : "Z")).toISOString() : null,
       };
 
       if (action) {

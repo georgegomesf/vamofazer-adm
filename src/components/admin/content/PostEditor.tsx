@@ -53,19 +53,11 @@ export default function PostEditor({ post }: PostEditorProps) {
   const formatToLocalDatetime = (dateString?: string | Date | null) => {
     if (!dateString) return null;
     
-    // Garantir que trabalhamos com um objeto Date. 
-    // Se for string e não tiver fuso, assumimos que vem do DB como UTC.
-    let d: Date;
-    if (typeof dateString === 'string' && !dateString.includes('Z') && !dateString.includes('+')) {
-      d = new Date(dateString + 'Z');
-    } else {
-      d = new Date(dateString);
-    }
-
+    const d = new Date(dateString);
     if (isNaN(d.getTime())) return null;
 
     const pad = (n: number) => n.toString().padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}T${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
   };
 
   useEffect(() => {
@@ -239,7 +231,7 @@ export default function PostEditor({ post }: PostEditorProps) {
 
     const submissionData = {
       ...formData,
-      publishedAt: formData.publishedAt ? new Date(formData.publishedAt).toISOString() : null,
+      publishedAt: formData.publishedAt ? new Date(formData.publishedAt + (formData.publishedAt.includes("Z") ? "" : "Z")).toISOString() : null,
     };
 
     try {
