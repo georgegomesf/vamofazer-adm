@@ -138,7 +138,21 @@ export async function getActivities(projectId: string, limit: number = 50, page:
           OR: [
             { startDate: { gte: today } }, // Future or starting today
             { endDate: { gte: today } },   // Ending today or future
-          ]
+          ],
+          posts: {
+            some: {}
+          }
+        },
+        include: {
+          posts: {
+            include: {
+              post: {
+                select: {
+                  imageUrl: true
+                }
+              }
+            }
+          }
         }
       });
 
@@ -150,6 +164,8 @@ export async function getActivities(projectId: string, limit: number = 50, page:
       actions.forEach(action => {
         const start = action.startDate ? new Date(action.startDate) : null;
         const end = action.endDate ? new Date(action.endDate) : null;
+        const postImageUrl = action.posts?.[0]?.post?.imageUrl || action.imageUrl;
+        const postId = action.posts?.[0]?.postId;
 
         if (start && start.toDateString() === today.toDateString()) {
           notices.push({
@@ -162,7 +178,7 @@ export async function getActivities(projectId: string, limit: number = 50, page:
             isSystem: true,
             url: action.url,
             project,
-            metadata: { actionId: action.id, status: "STARTING" }
+            metadata: { actionId: action.id, status: "STARTING", imageUrl: postImageUrl, postId }
           });
         } else if (end && end.toDateString() === today.toDateString()) {
           notices.push({
@@ -175,7 +191,7 @@ export async function getActivities(projectId: string, limit: number = 50, page:
             isSystem: true,
             url: action.url,
             project,
-            metadata: { actionId: action.id, status: "ENDING" }
+            metadata: { actionId: action.id, status: "ENDING", imageUrl: postImageUrl, postId }
           });
         } else if (start && end && now > start && now < end) {
           notices.push({
@@ -188,7 +204,7 @@ export async function getActivities(projectId: string, limit: number = 50, page:
             isSystem: true,
             url: action.url,
             project,
-            metadata: { actionId: action.id, status: "IN_PROGRESS" }
+            metadata: { actionId: action.id, status: "IN_PROGRESS", imageUrl: postImageUrl, postId }
           });
         }
       });
@@ -196,6 +212,34 @@ export async function getActivities(projectId: string, limit: number = 50, page:
 
     // Combine
     let combined = [...activities, ...linkedActivities, ...notices];
+
+    // Enrichment: Attach imageUrl from related posts if missing in metadata but postId is present
+    const postIdsForEnrichment = combined
+      .map((a: any) => a.metadata?.postId)
+      .filter((id): id is string => typeof id === 'string' && !!id);
+
+    if (postIdsForEnrichment.length > 0) {
+      const postsWithImages = await prisma.post.findMany({
+        where: { id: { in: postIdsForEnrichment } },
+        select: { id: true, imageUrl: true }
+      });
+
+      const imageMap = new Map(postsWithImages.map(p => [p.id, p.imageUrl]));
+
+      combined = combined.map((a: any) => {
+        const postId = a.metadata?.postId;
+        if (postId && !a.metadata?.imageUrl && imageMap.has(postId)) {
+          return {
+            ...a,
+            metadata: {
+              ...a.metadata,
+              imageUrl: imageMap.get(postId)
+            }
+          };
+        }
+        return a;
+      });
+    }
 
     // If publicOnly is true, filter out items linked to unpublished posts
     if (publicOnly) {

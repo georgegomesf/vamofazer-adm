@@ -113,7 +113,7 @@ export async function POST(request: Request) {
       await createActivity(projectId, {
         type: "ITEM_ADDED",
         title: `${interest.post.title}`,
-        description: `O item "${interest.post.title}" foi adicionado à lista "${interest.list?.name}".`,
+        description: `O item foi adicionado à lista "${interest.list?.name}".`,
         url: `/p/${interest.post.slug}`,
         userId,
         metadata: { postId, listId }
