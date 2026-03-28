@@ -13,6 +13,7 @@ export async function GET(request: Request) {
     const projectId = searchParams.get("projectId");
     const limit = parseInt(searchParams.get("limit") || "50", 10);
     const page = parseInt(searchParams.get("page") || "1", 10);
+    const activityId = searchParams.get("activityId") || undefined;
 
     const userId = searchParams.get("userId") || undefined;
     const publicOnly = searchParams.get("publicOnly") === "true";
@@ -21,7 +22,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "projectId is required" }, { status: 400, headers: corsHeaders });
     }
 
-    const activities = await getActivities(projectId, limit, page, userId, publicOnly);
+    const activities = await getActivities(projectId, limit, page, userId, publicOnly, activityId);
     return NextResponse.json({ activities }, { headers: corsHeaders });
   } catch (error) {
     console.error(error);

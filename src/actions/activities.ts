@@ -52,7 +52,7 @@ export async function createActivity(projectId: string, data: {
   }
 }
 
-export async function getActivities(projectId: string, limit: number = 50, page: number = 1, userId?: string, publicOnly: boolean = false) {
+export async function getActivities(projectId: string, limit: number = 50, page: number = 1, userId?: string, publicOnly: boolean = false, activityId?: string) {
   try {
     const skip = (page - 1) * limit;
 
@@ -97,7 +97,7 @@ export async function getActivities(projectId: string, limit: number = 50, page:
     const activities = await prisma.activity.findMany({
       where: {
         projectId,
-        OR: orConditions
+        ...(activityId ? { id: activityId } : { OR: orConditions }),
       },
       include: {
         user: {
