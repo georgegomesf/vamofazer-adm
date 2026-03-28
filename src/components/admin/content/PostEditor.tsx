@@ -4,7 +4,8 @@ import React, { useState, useEffect } from "react";
 import {
   Save, Loader2, FileText, Image as ImageIcon, Calendar, Tag as TagIcon,
   Layout, ChevronLeft, Eye, Edit3, Trash2, Link as LinkIcon, Plus,
-  X as CloseIcon, Clock, ListTodo, Type, Paperclip, Search, ExternalLink, Send
+  X as CloseIcon, Clock, ListTodo, Type, Paperclip, Search, ExternalLink, Send,
+  ExternalLinkIcon
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Button from "@/components/ui/button/Button";
@@ -52,7 +53,7 @@ export default function PostEditor({ post }: PostEditorProps) {
 
   const formatToLocalDatetime = (dateString?: string | Date | null) => {
     if (!dateString) return null;
-    
+
     const d = new Date(dateString);
     if (isNaN(d.getTime())) return null;
 
@@ -225,11 +226,11 @@ export default function PostEditor({ post }: PostEditorProps) {
     }
   };
 
-  const handleSubmit = async (e?: React.FormEvent, forcedDate?: string) => {
+  const handleSubmit = async (e?: React.FormEvent, explicitPublishedAt?: string | null) => {
     e?.preventDefault();
     setLoading(true);
 
-    const pubAt = forcedDate || formData.publishedAt;
+    const pubAt = explicitPublishedAt !== undefined ? explicitPublishedAt : formData.publishedAt;
     const submissionData = {
       ...formData,
       publishedAt: pubAt ? new Date(pubAt + (pubAt.includes("Z") ? "" : "Z")).toISOString() : null,
@@ -278,44 +279,60 @@ export default function PostEditor({ post }: PostEditorProps) {
         </div>
         <div className="flex items-center gap-3">
           {formData.slug && (
-            <a 
-              href={`${webUrl}/p/${formData.slug}?preview=true`} 
-              target="_blank" 
+            <a
+              href={`${webUrl}/p/${formData.slug}?preview=true`}
+              target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all"
+              className="inline-flex items-center justify-center font-medium gap-2 px-5 py-3.5 text-sm rounded-lg transition bg-white text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-400 dark:ring-gray-700 dark:hover:bg-white/[0.03] dark:hover:text-gray-300"
             >
-              <Eye className="h-4 w-4" /> Pré-visualizar
+              <ExternalLinkIcon className="h-4 w-4" /> Visualizar
             </a>
           )}
-          
-          <Button 
-            variant="outline" 
-            onClick={handleSubmit} 
-            disabled={loading} 
+
+          <Button
+            variant="outline"
+            onClick={handleSubmit}
+            disabled={loading}
             className="flex items-center gap-2"
           >
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            Salvar Rascunho
+            Salvar
           </Button>
 
-          <Button 
-            onClick={async (e) => {
-              const now = new Date();
-              const pad = (n: number) => n.toString().padStart(2, '0');
-              const nowStr = `${now.getUTCFullYear()}-${pad(now.getUTCMonth() + 1)}-${pad(now.getUTCDate())}T${pad(now.getUTCHours())}:${pad(now.getUTCMinutes())}`;
-              
-              setFormData(prev => ({ ...prev, publishedAt: nowStr }));
-              // Wait a tick for state to update before submit
-              setTimeout(() => {
-                const fakeEvent = { preventDefault: () => {} } as React.FormEvent;
-                handleSubmit(fakeEvent, nowStr);
-              }, 10);
-            }} 
-            disabled={loading} 
-            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 border-none"
-          >
-            <Send className="h-4 w-4" /> Publicar Agora
-          </Button>
+          {!formData.publishedAt ? (
+            <Button
+              onClick={async (e) => {
+                const now = new Date();
+                const pad = (n: number) => n.toString().padStart(2, '0');
+                const nowStr = `${now.getUTCFullYear()}-${pad(now.getUTCMonth() + 1)}-${pad(now.getUTCDate())}T${pad(now.getUTCHours())}:${pad(now.getUTCMinutes())}`;
+
+                setFormData(prev => ({ ...prev, publishedAt: nowStr }));
+                // Wait a tick for state to update before submit
+                setTimeout(() => {
+                  const fakeEvent = { preventDefault: () => { } } as React.FormEvent;
+                  handleSubmit(fakeEvent, nowStr);
+                }, 10);
+              }}
+              disabled={loading}
+              className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 border-none"
+            >
+              <Send className="h-4 w-4" /> Publicar
+            </Button>
+          ) : (
+            <Button
+              onClick={async () => {
+                setFormData(prev => ({ ...prev, publishedAt: null }));
+                setTimeout(() => {
+                  const fakeEvent = { preventDefault: () => { } } as React.FormEvent;
+                  handleSubmit(fakeEvent, null);
+                }, 10);
+              }}
+              disabled={loading}
+              className="flex items-center gap-2 bg-red-600 hover:bg-red-700 border-none text-white"
+            >
+              <CloseIcon className="h-4 w-4" /> Retirar
+            </Button>
+          )}
         </div>
       </div>
 
@@ -638,7 +655,7 @@ export default function PostEditor({ post }: PostEditorProps) {
           <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
             <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
               <Calendar className="h-5 w-5 text-brand-500" />
-              Status e Publicação
+              Programar
             </h3>
             <div className="space-y-4">
               <div className="space-y-2">
@@ -654,12 +671,12 @@ export default function PostEditor({ post }: PostEditorProps) {
                   />
                 </div>
                 {formData.publishedAt ? (
-                  <button 
+                  <button
                     type="button"
                     onClick={() => setFormData(prev => ({ ...prev, publishedAt: null }))}
                     className="text-xs text-red-500 hover:text-red-700 font-semibold mt-2 flex items-center gap-1"
                   >
-                    <Trash2 className="h-3 w-3" /> Remover publicação (Tornar Rascunho)
+                    <Trash2 className="h-3 w-3" /> Limpar
                   </button>
                 ) : (
                   <p className="text-[10px] text-gray-500 mt-1 italic">Status atual: RASCUNHO (Privado)</p>

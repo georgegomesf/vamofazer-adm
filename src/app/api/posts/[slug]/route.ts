@@ -18,15 +18,20 @@ export async function GET(
     let isAuthorized = false;
     let currentUserId = null;
     if (isPreview) {
-      const session = await auth();
-      const user = session?.user as any;
-      if (user) {
-        currentUserId = user.id;
-        if (user.role === "ADMIN" || user.projectRole === "ADMIN") {
-          isAuthorized = true;
-        }
+      const previewSecret = request.headers.get("x-preview-secret");
+      if (previewSecret && previewSecret === process.env.AUTH_SECRET) {
+        isAuthorized = true;
       } else {
-        return NextResponse.json({ error: "Unauthorized - Login Required for Preview" }, { status: 404 });
+        const session = await auth();
+        const user = session?.user as any;
+        if (user) {
+          currentUserId = user.id;
+          if (user.role?.toUpperCase() === "ADMIN" || user.projectRole?.toUpperCase() === "ADMIN") {
+            isAuthorized = true;
+          }
+        } else {
+          return NextResponse.json({ error: "Unauthorized - Login Required for Preview" }, { status: 404 });
+        }
       }
     }
 

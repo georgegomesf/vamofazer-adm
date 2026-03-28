@@ -125,14 +125,19 @@ export async function getActivities(projectId: string, limit: number = 50, page:
     const notices: any[] = [];
     if (page === 1) {
       const now = new Date();
+      now.setSeconds(0, 0); // Importante: Zerando os segundos para considerar apenas os 'minutos' (exato)
+
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      
+      // Criar a meia-noite do dia atual no UTC-absoluto, já que o BD falsamente salva wall-time no fuso UTC:
+      const todayNakedUTC = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0));
 
       const actions = await prisma.action.findMany({
         where: {
           projectId,
           OR: [
-            { startDate: { gte: today } }, // Future or starting today
-            { endDate: { gte: today } },   // Ending today or future
+            { startDate: { gte: todayNakedUTC } }, // Future or starting today
+            { endDate: { gte: todayNakedUTC } },   // Ending today or future
           ],
           posts: {
             some: {}
@@ -156,51 +161,98 @@ export async function getActivities(projectId: string, limit: number = 50, page:
         select: { logoUrl: true, name: true }
       });
 
+      // Helper: Prisma retorna Date objects do BD em formato UTC.
+      // E.g., 14:00 wall-time é salvo como 14:00 UTC (14:00:00.000Z).
+      // Ao retirar o Z da string ISO, a recriação usa o timezone local do servidor e converte para Date Correto.
+      const getLocalWallTime = (dateObj: Date | null | string): Date | null => {
+         if (!dateObj) return null;
+         const iso = new Date(dateObj).toISOString();
+         return new Date(iso.replace('Z', ''));
+      };
+
       actions.forEach(action => {
-        const start = action.startDate ? new Date(action.startDate) : null;
-        const end = action.endDate ? new Date(action.endDate) : null;
+        const start = getLocalWallTime(action.startDate);
+        if (start) start.setSeconds(0, 0);
+        
+        const end = getLocalWallTime(action.endDate);
+        if (end) end.setSeconds(0, 0);
+        
         const postImageUrl = action.posts?.[0]?.post?.imageUrl || action.imageUrl;
         const postId = action.posts?.[0]?.postId;
 
-        if (start && start.toDateString() === today.toDateString()) {
-          notices.push({
-            id: `notice-start-${action.id}`,
-            type: "NOTICE",
-            title: `${action.title}`,
-            description: null,
-            projectId,
-            createdAt: start,
-            isSystem: true,
-            url: action.url,
-            project,
-            metadata: { actionId: action.id, status: "STARTING", imageUrl: postImageUrl, postId }
-          });
-        } else if (end && end.toDateString() === today.toDateString()) {
-          notices.push({
-            id: `notice-end-${action.id}`,
-            type: "NOTICE",
-            title: `${action.title}`,
-            description: null,
-            projectId,
-            createdAt: end,
-            isSystem: true,
-            url: action.url,
-            project,
-            metadata: { actionId: action.id, status: "ENDING", imageUrl: postImageUrl, postId }
-          });
-        } else if (start && end && now > start && now < end) {
-          notices.push({
-            id: `notice-progress-${action.id}`,
-            type: "NOTICE",
-            title: `${action.title}`,
-            description: null,
-            projectId,
-            createdAt: start, // Use start date for ordering
-            isSystem: true,
-            url: action.url,
-            project,
-            metadata: { actionId: action.id, status: "IN_PROGRESS", imageUrl: postImageUrl, postId }
-          });
+        let statusToYield: string | null = null;
+        let dateToYield: Date | null = null;
+
+        if (start && end) {
+           const startIsToday = start.toDateString() === today.toDateString();
+           const endIsToday = end.toDateString() === today.toDateString();
+           const isSameDay = start.toDateString() === end.toDateString();
+
+           if (isSameDay && startIsToday) {
+               if (now < start) {
+                   statusToYield = "TODAY";
+                   dateToYield = start;
+               } else if (now >= start && now <= end) {
+                   statusToYield = "NOW";
+                   dateToYield = start;
+               } else if (now > end) {
+                   statusToYield = "ENDED";
+                   dateToYield = end;
+               }
+           } else {
+               // Multi-day action
+               if (startIsToday) {
+                   dateToYield = start;
+                   if (now >= start) {
+                       statusToYield = "STARTED_TODAY";
+                   } else {
+                       statusToYield = "STARTS_TODAY";
+                   }
+               } else if (endIsToday) {
+                   dateToYield = end;
+                   if (now > end) {
+                       statusToYield = "ENDED_TODAY";
+                   } else {
+                       statusToYield = "ENDS_TODAY";
+                   }
+               }
+               // Desconsidera o intervalo entre os dias como requerido
+           }
+        } else if (start) {
+           // Only start date
+           if (start.toDateString() === today.toDateString()) {
+               dateToYield = start;
+               if (now < start) {
+                   statusToYield = "TODAY";
+               } else {
+                   statusToYield = "TODAY"; 
+               }
+           }
+        } else if (end) {
+           // Only end date
+           if (end.toDateString() === today.toDateString()) {
+               dateToYield = end;
+               if (now > end) {
+                   statusToYield = "ENDED";
+               } else {
+                   statusToYield = "ENDS_TODAY";
+               }
+           }
+        }
+
+        if (statusToYield && dateToYield) {
+            notices.push({
+               id: `notice-${statusToYield.toLowerCase()}-${action.id}`,
+               type: "NOTICE",
+               title: `${action.title}`,
+               description: null,
+               projectId,
+               createdAt: dateToYield,
+               isSystem: true,
+               url: action.url,
+               project,
+               metadata: { actionId: action.id, status: statusToYield, imageUrl: postImageUrl, postId }
+            });
         }
       });
     }

@@ -109,15 +109,17 @@ export async function POST(request: Request) {
         include: { post: true, list: true }
       });
 
-      // Create Activity: Item Added
-      await createActivity(projectId, {
-        type: "ITEM_ADDED",
-        title: `${interest.post.title}`,
-        description: `O item foi adicionado à lista "${interest.list?.name}".`,
-        url: `/p/${interest.post.slug}`,
-        userId,
-        metadata: { postId, listId }
-      });
+      if (interest.list?.isPublic) {
+        // Create Activity: Item Added
+        await createActivity(projectId, {
+          type: "ITEM_ADDED",
+          title: `${interest.post.title}`,
+          description: `O item foi adicionado à lista "${interest.list?.name}".`,
+          url: `/p/${interest.post.slug}`,
+          userId,
+          metadata: { postId, listId }
+        });
+      }
 
       return NextResponse.json({ action: "added", message: "Interesse adicionado com sucesso" }, { headers: corsHeaders });
     }
