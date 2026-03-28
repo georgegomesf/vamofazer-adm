@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(
   request: Request,
@@ -8,16 +11,35 @@ export async function GET(
   try {
     const { slug } = await params;
     const { searchParams } = new URL(request.url);
+    const isPreview = searchParams.get("preview") === "true";
     const projectId = searchParams.get("projectId");
+
+    // Verificar autorização para preview
+    let isAuthorized = false;
+    let currentUserId = null;
+    if (isPreview) {
+      const session = await auth();
+      const user = session?.user as any;
+      if (user) {
+        currentUserId = user.id;
+        if (user.role === "ADMIN" || user.projectRole === "ADMIN") {
+          isAuthorized = true;
+        }
+      } else {
+        return NextResponse.json({ error: "Unauthorized - Login Required for Preview" }, { status: 404 });
+      }
+    }
 
     const post = await prisma.post.findFirst({
       where: {
         slug,
         ...(projectId ? { projectId } : {}),
-        publishedAt: {
-          not: null,
-          lte: new Date(),
-        },
+        ...(!isPreview ? {
+          publishedAt: {
+            not: null,
+            lte: new Date(),
+          },
+        } : {}),
       },
       include: {
         categories: {
@@ -38,9 +60,21 @@ export async function GET(
       return NextResponse.json({ error: "Post not found" }, { status: 404 });
     }
 
+    // Se for preview e não for admin, verificar se é o criador
+    if (isPreview && !isAuthorized) {
+      if (!currentUserId || post.createdBy !== currentUserId) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 404 });
+      }
+    }
+
     return NextResponse.json(
       { post },
-      { headers: { "Access-Control-Allow-Origin": "*" } }
+      { 
+        headers: { 
+          "Access-Control-Allow-Origin": "*",
+          "Cache-Control": "no-store, max-age=0",
+        } 
+      }
     );
   } catch (error) {
     console.error("Single post fetch error:", error);

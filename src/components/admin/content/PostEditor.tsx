@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import {
   Save, Loader2, FileText, Image as ImageIcon, Calendar, Tag as TagIcon,
   Layout, ChevronLeft, Eye, Edit3, Trash2, Link as LinkIcon, Plus,
-  X as CloseIcon, Clock, ListTodo, Type, Paperclip, Search
+  X as CloseIcon, Clock, ListTodo, Type, Paperclip, Search, ExternalLink, Send
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Button from "@/components/ui/button/Button";
@@ -29,11 +29,11 @@ export default function PostEditor({ post }: PostEditorProps) {
   const [allTags, setAllTags] = useState<any[]>([]);
   const [allAttachments, setAllAttachments] = useState<any[]>([]);
   const [allActions, setAllActions] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit");
   const [isAttachmentModalOpen, setIsAttachmentModalOpen] = useState(false);
   const [isActionModalOpen, setIsActionModalOpen] = useState(false);
   const [tagSearch, setTagSearch] = useState("");
   const [tagDropdownOpen, setTagDropdownOpen] = useState(false);
+  const webUrl = process.env.NEXT_PUBLIC_WEB_SERVICE_URL || "http://localhost:3000";
 
   const [formData, setFormData] = useState({
     title: "",
@@ -225,13 +225,14 @@ export default function PostEditor({ post }: PostEditorProps) {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent, forcedDate?: string) => {
+    e?.preventDefault();
     setLoading(true);
 
+    const pubAt = forcedDate || formData.publishedAt;
     const submissionData = {
       ...formData,
-      publishedAt: formData.publishedAt ? new Date(formData.publishedAt + (formData.publishedAt.includes("Z") ? "" : "Z")).toISOString() : null,
+      publishedAt: pubAt ? new Date(pubAt + (pubAt.includes("Z") ? "" : "Z")).toISOString() : null,
     };
 
     try {
@@ -276,25 +277,44 @@ export default function PostEditor({ post }: PostEditorProps) {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
-            <button
-              type="button"
-              onClick={() => setActiveTab("edit")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === "edit" ? "bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white" : "text-gray-500 hover:text-gray-700"}`}
+          {formData.slug && (
+            <a 
+              href={`${webUrl}/p/${formData.slug}?preview=true`} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all"
             >
-              <Edit3 className="h-4 w-4" /> Escrever
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab("preview")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === "preview" ? "bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white" : "text-gray-500 hover:text-gray-700"}`}
-            >
-              <Eye className="h-4 w-4" /> Visualizar
-            </button>
-          </div>
-          <Button onClick={handleSubmit} disabled={loading} className="flex items-center gap-2">
+              <Eye className="h-4 w-4" /> Pré-visualizar
+            </a>
+          )}
+          
+          <Button 
+            variant="outline" 
+            onClick={handleSubmit} 
+            disabled={loading} 
+            className="flex items-center gap-2"
+          >
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            {loading ? "Salvando..." : "Salvar"}
+            Salvar Rascunho
+          </Button>
+
+          <Button 
+            onClick={async (e) => {
+              const now = new Date();
+              const pad = (n: number) => n.toString().padStart(2, '0');
+              const nowStr = `${now.getUTCFullYear()}-${pad(now.getUTCMonth() + 1)}-${pad(now.getUTCDate())}T${pad(now.getUTCHours())}:${pad(now.getUTCMinutes())}`;
+              
+              setFormData(prev => ({ ...prev, publishedAt: nowStr }));
+              // Wait a tick for state to update before submit
+              setTimeout(() => {
+                const fakeEvent = { preventDefault: () => {} } as React.FormEvent;
+                handleSubmit(fakeEvent, nowStr);
+              }, 10);
+            }} 
+            disabled={loading} 
+            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 border-none"
+          >
+            <Send className="h-4 w-4" /> Publicar Agora
           </Button>
         </div>
       </div>
@@ -356,22 +376,16 @@ export default function PostEditor({ post }: PostEditorProps) {
                 />
               </div>
 
-              {activeTab === "edit" ? (
-                <div className="space-y-4">
-                  <textarea
-                    name="content"
-                    value={formData.content}
-                    onChange={handleInputChange}
-                    rows={15}
-                    className="w-full bg-gray-50 dark:bg-gray-800/50 p-6 rounded-xl border border-transparent focus:border-brand-500 outline-none transition-all dark:text-white font-mono leading-relaxed"
-                    placeholder="Escreva seu artigo aqui usando Markdown..."
-                  />
-                </div>
-              ) : (
-                <div className="min-h-[400px] bg-gray-50 dark:bg-gray-800/50 p-6 rounded-xl prose dark:prose-invert max-w-none">
-                  <div className="whitespace-pre-wrap dark:text-gray-200">{formData.content || "Sem conteúdo para visualizar."}</div>
-                </div>
-              )}
+              <div className="space-y-4">
+                <textarea
+                  name="content"
+                  value={formData.content}
+                  onChange={handleInputChange}
+                  rows={20}
+                  className="w-full bg-gray-50 dark:bg-gray-800/50 p-6 rounded-xl border border-transparent focus:border-brand-500 outline-none transition-all dark:text-white font-mono leading-relaxed"
+                  placeholder="Escreva seu artigo aqui usando Markdown..."
+                />
+              </div>
             </div>
           </section>
         </div>
@@ -624,7 +638,7 @@ export default function PostEditor({ post }: PostEditorProps) {
           <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
             <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
               <Calendar className="h-5 w-5 text-brand-500" />
-              Status
+              Status e Publicação
             </h3>
             <div className="space-y-4">
               <div className="space-y-2">
@@ -639,7 +653,17 @@ export default function PostEditor({ post }: PostEditorProps) {
                     className="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none transition-all dark:bg-gray-800 dark:border-gray-700 dark:text-white"
                   />
                 </div>
-                {!formData.publishedAt && <p className="text-[10px] text-gray-500 mt-1 italic">Vazio = Rascunho</p>}
+                {formData.publishedAt ? (
+                  <button 
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, publishedAt: null }))}
+                    className="text-xs text-red-500 hover:text-red-700 font-semibold mt-2 flex items-center gap-1"
+                  >
+                    <Trash2 className="h-3 w-3" /> Remover publicação (Tornar Rascunho)
+                  </button>
+                ) : (
+                  <p className="text-[10px] text-gray-500 mt-1 italic">Status atual: RASCUNHO (Privado)</p>
+                )}
               </div>
             </div>
           </section>

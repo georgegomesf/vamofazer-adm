@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { getActivities } from "@/actions/activities";
+import { auth } from "@/auth";
+
+export const dynamic = "force-dynamic";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,7 +19,16 @@ export async function GET(request: Request) {
     const activityId = searchParams.get("activityId") || undefined;
 
     const userId = searchParams.get("userId") || undefined;
-    const publicOnly = searchParams.get("publicOnly") === "true";
+    let publicOnly = searchParams.get("publicOnly") === "true";
+
+    // Segurança: Somente Admins podem ver atividades não-públicas (rascunhos)
+    const session = await auth();
+    const user = session?.user as any;
+    const isAdmin = user?.role === "ADMIN" || user?.projectRole === "ADMIN";
+    
+    if (!isAdmin) {
+      publicOnly = true;
+    }
 
     if (!projectId) {
       return NextResponse.json({ error: "projectId is required" }, { status: 400, headers: corsHeaders });

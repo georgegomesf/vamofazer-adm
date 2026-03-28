@@ -7,37 +7,56 @@ import { Loader2 } from "lucide-react";
 
 function SignOutContent() {
     const searchParams = useSearchParams();
-    const finalCallbackUrl = searchParams.get("callbackUrl") || "/";
+    let finalCallbackUrl = searchParams.get("callbackUrl") || "/";
+
+    const skipPeer = searchParams.get("skipPeer") === "1";
 
     const isStarted = useRef(false);
     useEffect(() => {
         const performSignOut = async () => {
             if (isStarted.current) return;
             isStarted.current = true;
-            
-            console.log("AUTH SIGNOUT: Starting process...");
-            const authServiceUrl = process.env.NEXT_PUBLIC_AUTH_SERVICE_URL;
 
-            try {
-                // 1. Limpa a sessão local no web-auth
-                await signOut({
-                    redirect: false
-                });
-            } catch (err) {
-                console.warn("Local signOut encountered a minor error, continuing with global logout:", err);
+            // Garantir que a URL de retorno final seja absoluta
+            if (finalCallbackUrl.startsWith("/")) {
+                finalCallbackUrl = window.location.origin + finalCallbackUrl;
             }
 
-            // 2. Redireciona para o logout central para limpar a sessão no @auth também
-            if (authServiceUrl) {
-                const globalSignOutUrl = `${authServiceUrl}/auth/signout?callbackUrl=${encodeURIComponent(window.location.origin + finalCallbackUrl)}`;
-                window.location.href = globalSignOutUrl;
+            const authServiceUrl = process.env.NEXT_PUBLIC_AUTH_SERVICE_URL;
+            const peerUrl = process.env.NEXT_PUBLIC_WEB_SERVICE_URL;
+
+            try {
+                // 1. Limpa a sessão local no adm
+                await signOut({ redirect: false });
+            } catch (err) {
+                console.warn("Local signOut error:", err);
+            }
+
+            if (!skipPeer && peerUrl) {
+                // 2. Criar a URL de logout central que possui o retorno final
+                const authLogoutUrl = authServiceUrl
+                    ? `${authServiceUrl}/auth/signout?callbackUrl=${encodeURIComponent(finalCallbackUrl)}`
+                    : finalCallbackUrl;
+
+                // 3. Delegar para o peer, passando a URL do auth central como callback
+                window.location.href = `${peerUrl}/auth/signout?callbackUrl=${encodeURIComponent(authLogoutUrl)}&skipPeer=1`;
             } else {
-                window.location.href = finalCallbackUrl;
+                // Já fomos chamados pelo peer, ou não há peer.
+                // A finalCallbackUrl já contém a URL do auth-service criada pelo iniciador.
+                if (skipPeer) {
+                    window.location.href = finalCallbackUrl;
+                } else {
+                    if (authServiceUrl) {
+                        window.location.href = `${authServiceUrl}/auth/signout?callbackUrl=${encodeURIComponent(finalCallbackUrl)}`;
+                    } else {
+                        window.location.href = finalCallbackUrl;
+                    }
+                }
             }
         };
 
         performSignOut();
-    }, [finalCallbackUrl]);
+    }, [finalCallbackUrl, skipPeer]);
 
     return (
         <div className="min-h-screen bg-white flex flex-col items-center justify-center text-zinc-950 p-6 text-center">
@@ -56,3 +75,4 @@ export default function SignOutPage() {
         </Suspense>
     );
 }
+

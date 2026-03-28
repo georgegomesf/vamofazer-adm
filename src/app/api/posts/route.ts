@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   try {
@@ -22,8 +25,29 @@ export async function GET(request: Request) {
       if (cat?.type) categoryType = cat.type;
     }
 
+    let isPreview = searchParams.get("preview") === "true";
+    
+    // Security: Only admins can view list of drafts
+    if (isPreview) {
+      const session = await auth();
+      const user = session?.user as any;
+      const isAdmin = user?.role === "ADMIN" || user?.projectRole === "ADMIN";
+      if (!isAdmin) {
+        isPreview = false;
+      }
+    }
+    
+    // Base filter for public requests: only published and not scheduled
+    const publicationFilter = !isPreview ? {
+      publishedAt: {
+        not: null,
+        lte: new Date(),
+      }
+    } : {};
+
     const where: any = {
       ...(projectId ? { projectId } : {}),
+      ...publicationFilter,
       ...(search ? {
         OR: [
           { title: { contains: search, mode: 'insensitive' } },
@@ -31,10 +55,6 @@ export async function GET(request: Request) {
           { content: { contains: search, mode: 'insensitive' } },
         ]
       } : {}),
-      publishedAt: {
-        not: null,
-        lte: new Date(),
-      },
       ...(categorySlug ? {
         categories: {
           some: {

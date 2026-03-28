@@ -248,6 +248,15 @@ export async function updatePost(id: string, data: any) {
 
     revalidatePath("/adm/posts");
     revalidatePath(`/adm/posts/${id}`);
+
+    // Invalidar cache do site imediatamente após qualquer alteração no post
+    try {
+      const webUrl = process.env.NEXT_PUBLIC_WEB_SERVICE_URL || "http://localhost:3000";
+      await fetch(`${webUrl}/api/revalidate?slug=${post.slug}`, { cache: "no-store" });
+    } catch (_) {
+      // Não bloquear o fluxo se o site estiver offline
+    }
+
     return { success: true, post };
   } catch (error: any) {
     console.error("Error updating post:", error);

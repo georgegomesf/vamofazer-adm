@@ -4,6 +4,7 @@ import { signIn } from "next-auth/react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
 import { Loader2 } from "lucide-react";
+import { syncSessionToPeer } from "@/lib/sso";
 
 function AuthCallbackContent() {
     const searchParams = useSearchParams();
@@ -13,13 +14,22 @@ function AuthCallbackContent() {
     useEffect(() => {
         const st = searchParams.get("st");
         const dest = searchParams.get("dest") || "/";
+        const silent = searchParams.get("silent") === "1";
 
         if (st) {
-            signIn("token-transfer", {
-                st,
-                callbackUrl: dest,
-                redirect: true
-            });
+            if (silent) {
+                // Modo SSO iframe: cria sessão sem redirecionar
+                signIn("token-transfer", { st, redirect: false });
+            } else {
+                // Login normal: cria sessão, sincroniza com Web e redireciona
+                signIn("token-transfer", { st, redirect: false }).then(async () => {
+                    const webUrl = process.env.NEXT_PUBLIC_WEB_SERVICE_URL;
+                    if (webUrl) {
+                        await syncSessionToPeer(webUrl, "/");
+                    }
+                    router.push(dest);
+                });
+            }
         } else {
             router.push("/");
         }

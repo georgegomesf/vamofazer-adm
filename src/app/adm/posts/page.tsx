@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Plus, Search, FileText, Calendar, Edit, Trash2, Loader2, Filter } from "lucide-react";
+import { Plus, Search, FileText, Calendar, Edit, Trash2, Loader2, Filter, Eye } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import { getPosts, deletePost } from "@/actions/posts";
 import DeleteModal from "@/components/admin/content/DeleteModal";
@@ -17,6 +17,7 @@ export default function PostsPage() {
   const itemsPerPage = 10;
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const webUrl = process.env.NEXT_PUBLIC_WEB_SERVICE_URL || "http://localhost:3000";
 
   const projectId = process.env.NEXT_PUBLIC_PROJECT_ID as string;
 
@@ -177,6 +178,15 @@ export default function PostsPage() {
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
+                      <a 
+                        href={`${webUrl}/p/${post.slug}?preview=true`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="p-2 text-gray-400 hover:text-blue-500 transition-colors" 
+                        title="Visualizar no Site (Preview)"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </a>
                       <Link href={`/adm/posts/${post.id}`}>
                         <button className="p-2 text-gray-400 hover:text-brand-500 transition-colors" title="Editar">
                           <Edit className="h-4 w-4" />

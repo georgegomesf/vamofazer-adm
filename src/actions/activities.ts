@@ -313,7 +313,10 @@ export async function getActivities(projectId: string, limit: number = 50, page:
         const publishedPosts = await prisma.post.findMany({
           where: {
             id: { in: postIdsToCheck },
-            publishedAt: { not: null }
+            publishedAt: {
+              not: null,
+              lte: new Date(),
+            }
           },
           select: { id: true }
         });

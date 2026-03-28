@@ -6,6 +6,7 @@ import { Mail, Lock, User, ShieldCheck, MailQuestion, Loader2 } from "lucide-rea
 import { GoogleIcon } from "@/components/icons";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { syncSessionToPeer } from "@/lib/sso";
 
 export default function LoginForm() {
     const [email, setEmail] = useState("");
@@ -50,6 +51,11 @@ export default function LoginForm() {
                 setError("E-mail ou senha inválidos");
                 setLoading(false);
             } else {
+                // SSO: sincroniza sessão com o Web em background
+                const webUrl = process.env.NEXT_PUBLIC_WEB_SERVICE_URL;
+                if (webUrl) {
+                    await syncSessionToPeer(webUrl, "/");
+                }
                 router.push(callbackUrl);
             }
         } catch (err) {
