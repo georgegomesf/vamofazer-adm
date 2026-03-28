@@ -197,49 +197,88 @@ export async function getActivities(projectId: string, limit: number = 50, page:
     const postIds = new Set<string>();
     const actionIds = new Set<string>();
     const attachmentIds = new Set<string>();
+    const listIds = new Set<string>();
 
     combined.forEach((a: any) => {
-      const { postId, actionId, attachmentId } = a.metadata || {};
+      let { postId, actionId, attachmentId, listId } = a.metadata || {};
+      
+      // Fallback: Tentar extrair do URL se o metadata estiver incompleto (para atividades legadas)
+      if (!postId && a.url?.startsWith('/p/')) postId = a.url.split('/').pop();
+      if (!listId && a.url?.startsWith('/l/')) listId = a.url.split('/').pop();
+
       if (postId) postIds.add(postId);
       if (actionId) actionIds.add(actionId);
       if (attachmentId) attachmentIds.add(attachmentId);
+      if (listId) listIds.add(listId);
+      
+      // Armazenar os IDs recuperados de volta no objeto para facilitar o mapeamento posterior
+      a._recoveredIds = { postId, actionId, attachmentId, listId };
     });
 
-    const [posts, actions, attachments] = await Promise.all([
-      postIds.size > 0 ? prisma.post.findMany({ where: { id: { in: Array.from(postIds) } }, select: { id: true, title: true, slug: true, imageUrl: true } }) : [],
+    const [posts, actions, attachments, currentLists] = await Promise.all([
+      postIds.size > 0 ? prisma.post.findMany({ where: { OR: [{ id: { in: Array.from(postIds) } }, { slug: { in: Array.from(postIds) } }] }, select: { id: true, title: true, slug: true, imageUrl: true } }) : [],
       actionIds.size > 0 ? prisma.action.findMany({ where: { id: { in: Array.from(actionIds) } }, select: { id: true, title: true, url: true, imageUrl: true } }) : [],
       attachmentIds.size > 0 ? prisma.attachment.findMany({ where: { id: { in: Array.from(attachmentIds) } }, select: { id: true, title: true, url: true } }) : [],
+      listIds.size > 0 ? prisma.interestList.findMany({ where: { id: { in: Array.from(listIds) } }, select: { id: true, name: true, imageUrl: true } }) : [],
     ]);
 
-    const postMap = new Map(posts.map(p => [p.id, p]));
+    const postMap = new Map();
+    posts.forEach(p => { postMap.set(p.id, p); postMap.set(p.slug, p); });
     const actionMap = new Map(actions.map(a => [a.id, a]));
     const attachmentMap = new Map(attachments.map(at => [at.id, at]));
+    const listMap = new Map(currentLists.map(l => [l.id, l]));
 
     combined = combined.map((a: any) => {
-      const { postId, actionId, attachmentId } = a.metadata || {};
+      const { postId, actionId, attachmentId, listId } = a._recoveredIds || {};
       let updated = { ...a };
+      delete (updated as any)._recoveredIds;
 
       // 1. Resolve Action and Attachment basic data
       if (actionId && actionMap.has(actionId)) {
         const act = actionMap.get(actionId)!;
         updated.title = updated.type === "ACTION_LINKED" || updated.type === "NOTICE" ? act.title : updated.title;
         updated.url = act.url || updated.url;
-        updated.metadata = { ...updated.metadata, imageUrl: act.imageUrl || updated.metadata?.imageUrl };
+        updated.metadata = { 
+          ...updated.metadata, 
+          itemUrl: act.url, 
+          imageUrl: act.imageUrl || updated.metadata?.imageUrl 
+        };
       }
 
       if (attachmentId && attachmentMap.has(attachmentId)) {
         const att = attachmentMap.get(attachmentId)!;
         updated.title = updated.type === "ATTACHMENT_LINKED" ? att.title : updated.title;
         updated.url = att.url || updated.url;
+        updated.metadata = { 
+          ...updated.metadata, 
+          itemUrl: att.url 
+        };
+      }
+
+      if (listId && listMap.has(listId)) {
+        const l = listMap.get(listId)!;
+        updated.title = updated.type === "LIST_CREATED" ? l.name : updated.title;
+        // Keep the list image separately to allow filtering by list status
+        updated.metadata = { 
+          ...updated.metadata, 
+          listImageUrl: l.imageUrl, 
+          listName: l.name,
+          imageUrl: l.imageUrl || updated.metadata?.imageUrl 
+        };
       }
 
       // 2. Overwrite with Post data if available (Internal priority)
       if (postId && postMap.has(postId)) {
         const p = postMap.get(postId)!;
         updated.title = updated.type === "POST_PUBLISHED" ? p.title : updated.title;
+        updated.metadata = { 
+           ...updated.metadata, 
+           postTitle: p.title,
+           postUrl: `/p/${p.slug}`,
+           imageUrl: p.imageUrl || updated.metadata?.imageUrl 
+        };
         // Always point to internal post URL if attached to a post
         updated.url = `/p/${p.slug}`;
-        updated.metadata = { ...updated.metadata, imageUrl: p.imageUrl || updated.metadata?.imageUrl };
       }
 
       return updated;

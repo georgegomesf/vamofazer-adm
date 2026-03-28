@@ -199,8 +199,11 @@ export async function updatePost(id: string, data: any) {
 
     console.log("Server: Post updated successfully:", post.id);
 
-    // Activity: POST_PUBLISHED — only on first publish
-    if (post.publishedAt && wasUnpublished) {
+    // Activity: POST_PUBLISHED — on first publish OR when an image is added to a published post that had none
+    const becamePublished = post.publishedAt && wasUnpublished;
+    const addedImageToPublished = post.publishedAt && !wasUnpublished && (post.imageUrl && !previousPost?.imageUrl);
+
+    if (becamePublished || addedImageToPublished) {
       await createActivity(post.projectId, {
         type: "POST_PUBLISHED",
         title: post.title,

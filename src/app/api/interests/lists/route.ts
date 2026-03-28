@@ -52,14 +52,14 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { userId, projectId, name, description, isPublic } = body;
+    const { userId, projectId, name, description, isPublic, imageUrl } = body;
 
     if (!userId || !projectId || !name) {
       return NextResponse.json({ error: "userId, projectId and name are required" }, { status: 400, headers: corsHeaders });
     }
 
     const list = await prisma.interestList.create({
-      data: { userId, projectId, name, description, isPublic: !!isPublic }
+      data: { userId, projectId, name, description, isPublic: !!isPublic, imageUrl }
     });
 
     // Create Activity: Only if created as public.
@@ -112,7 +112,7 @@ export async function DELETE(request: Request) {
 export async function PATCH(request: Request) {
   try {
     const body = await request.json();
-    const { id, name, description, isPublic } = body;
+    const { id, name, description, isPublic, imageUrl } = body;
 
     if (!id) {
       return NextResponse.json({ error: "ID is required" }, { status: 400, headers: corsHeaders });
@@ -122,13 +122,13 @@ export async function PATCH(request: Request) {
     if (typeof name === "string") data.name = name;
     if (typeof description === "string" || description === null) data.description = description;
     if (typeof isPublic === "boolean") data.isPublic = isPublic;
+    if (typeof imageUrl === "string" || imageUrl === null) data.imageUrl = imageUrl;
 
     const oldList = await prisma.interestList.findUnique({ where: { id } });
     const list = await prisma.interestList.update({ where: { id }, data });
 
-    // Trigger activity only when list becomes public.
-    // Delete any previous LIST_CREATED for this list first to avoid duplicates.
-    if (list.isPublic && (!oldList || !oldList.isPublic)) {
+    // Garante que a atividade de "Nova Lista" exista se a lista for pública e tiver imagem
+    if (list.isPublic && list.imageUrl) {
       await prisma.activity.deleteMany({
         where: {
           type: "LIST_CREATED",
@@ -139,10 +139,10 @@ export async function PATCH(request: Request) {
       await createActivity(list.projectId, {
         type: "LIST_CREATED",
         title: `${list.name}`,
-        description: list.description || "Uma nova lista foi criada.",
+        description: list.description || "Uma nova lista foi publicada.",
         url: `/l/${list.id}`,
         userId: list.userId,
-        metadata: { listId: list.id }
+        metadata: { listId: list.id, imageUrl: list.imageUrl }
       });
     }
 

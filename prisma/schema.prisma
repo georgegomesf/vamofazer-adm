@@ -127,6 +127,7 @@ model InterestList {
   updatedAt   DateTime       @updatedAt
   description String?
   isPublic    Boolean        @default(false)
+  imageUrl    String?
   project     Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
   user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   interests   UserInterest[]
