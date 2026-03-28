@@ -218,8 +218,8 @@ export async function getActivities(projectId: string, limit: number = 50, page:
     const [posts, actions, attachments, currentLists] = await Promise.all([
       postIds.size > 0 ? prisma.post.findMany({ where: { OR: [{ id: { in: Array.from(postIds) } }, { slug: { in: Array.from(postIds) } }] }, select: { id: true, title: true, slug: true, imageUrl: true } }) : [],
       actionIds.size > 0 ? prisma.action.findMany({ where: { id: { in: Array.from(actionIds) } }, select: { id: true, title: true, url: true, imageUrl: true } }) : [],
-      attachmentIds.size > 0 ? prisma.attachment.findMany({ where: { id: { in: Array.from(attachmentIds) } }, select: { id: true, title: true, url: true } }) : [],
-      listIds.size > 0 ? prisma.interestList.findMany({ where: { id: { in: Array.from(listIds) } }, select: { id: true, name: true, imageUrl: true } }) : [],
+      attachmentIds.size > 0 ? prisma.attachment.findMany({ where: { id: { in: Array.from(attachmentIds) } }, select: { id: true, title: true, url: true, type: true } }) : [],
+      listIds.size > 0 ? prisma.interestList.findMany({ where: { id: { in: Array.from(listIds) } }, select: { id: true, name: true, imageUrl: true, isPublic: true } }) : [],
     ]);
 
     const postMap = new Map();
@@ -251,7 +251,8 @@ export async function getActivities(projectId: string, limit: number = 50, page:
         updated.url = att.url || updated.url;
         updated.metadata = { 
           ...updated.metadata, 
-          itemUrl: att.url 
+          itemUrl: att.url,
+          attachmentType: att.type
         };
       }
 
@@ -263,6 +264,7 @@ export async function getActivities(projectId: string, limit: number = 50, page:
           ...updated.metadata, 
           listImageUrl: l.imageUrl, 
           listName: l.name,
+          isListPublic: l.isPublic,
           imageUrl: l.imageUrl || updated.metadata?.imageUrl 
         };
       }
