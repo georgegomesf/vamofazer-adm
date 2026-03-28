@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { pusherServer } from "@/lib/pusher";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -35,6 +36,19 @@ export async function DELETE(
     await prisma.activity.delete({
       where: { id },
     });
+
+    // Notify all connected clients in real-time
+    if (process.env.PUSHER_SECRET) {
+      try {
+        await pusherServer.trigger(
+          `project-${activity.projectId}`,
+          "activity-deleted",
+          { id }
+        );
+      } catch (err) {
+        console.error("Pusher trigger error on delete:", err);
+      }
+    }
 
     return NextResponse.json({ success: true }, { headers: corsHeaders });
   } catch (error) {

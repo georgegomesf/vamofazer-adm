@@ -56,33 +56,48 @@ export async function getActivities(projectId: string, limit: number = 50, page:
   try {
     const skip = (page - 1) * limit;
 
-    // Resolve favorited postIds for the user (if logged in)
-    let favoritedPostIds: string[] | null = null;
-    if (userId) {
-      const interests = await prisma.userInterest.findMany({
-        where: { userId, projectId },
-        select: { postId: true }
-      });
-      favoritedPostIds = interests.map(i => i.postId);
-    }
+    // Determine which IDs the user has actively followed
+    let favoritedPostIds: string[] = [];
+    let subscribedListIds: string[] = [];
 
-    // Build filter: ACTION_LINKED and ATTACHMENT_LINKED are only shown
-    // if the referenced postId is in the user's favorites.
-    // Anonymous users never see these types.
-    const linkedTypesFilter: any[] = [];
-    if (favoritedPostIds && favoritedPostIds.length > 0) {
-      linkedTypesFilter.push({
-        type: { in: ["ACTION_LINKED", "ATTACHMENT_LINKED"] as any },
-        metadata: {
-          path: ["postId"],
-          string_in: favoritedPostIds
-        }
-      });
+    // Base types everyone sees
+    const orConditions: any[] = [
+      { type: { in: ["POST_PUBLISHED", "LIST_CREATED", "NOTICE"] } }
+    ];
+
+    if (userId) {
+      // The user always sees their own activities
+      orConditions.push({ userId });
+
+      const [interests, subscriptions] = await Promise.all([
+        prisma.userInterest.findMany({ where: { userId, projectId }, select: { postId: true } }),
+        prisma.listSubscription.findMany({ where: { userId }, select: { listId: true } })
+      ]);
+
+      favoritedPostIds = interests.map((i: any) => i.postId);
+      subscribedListIds = subscriptions.map((s: any) => s.listId);
+
+      const mappedPosts = favoritedPostIds.map((id: string) => ({ metadata: { path: ["postId"], equals: id } }));
+      if (mappedPosts.length > 0) {
+        orConditions.push({
+          type: { in: ["ACTION_LINKED", "ATTACHMENT_LINKED"] },
+          OR: mappedPosts
+        });
+      }
+
+      const mappedLists = subscribedListIds.map((id: string) => ({ metadata: { path: ["listId"], equals: id } }));
+      if (mappedLists.length > 0) {
+        orConditions.push({
+          type: "ITEM_ADDED",
+          OR: mappedLists
+        });
+      }
     }
 
     const activities = await prisma.activity.findMany({
       where: {
         projectId,
+        OR: orConditions
       },
       include: {
         user: {
