@@ -127,7 +127,8 @@ export async function getActivities(projectId: string, limit: number = 50, page:
       const now = new Date();
       now.setSeconds(0, 0); // Importante: Zerando os segundos para considerar apenas os 'minutos' (exato)
 
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const brtFormatter = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: 'numeric', month: '2-digit', day: '2-digit' });
+      const todayBrtString = brtFormatter.format(now); // Ex: "2026-03-28"
       
       // Criar a meia-noite do dia atual no UTC-absoluto, já que o BD falsamente salva wall-time no fuso UTC:
       const todayNakedUTC = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0));
@@ -161,20 +162,20 @@ export async function getActivities(projectId: string, limit: number = 50, page:
         select: { logoUrl: true, name: true }
       });
 
-      // Helper: Prisma retorna Date objects do BD em formato UTC.
-      // E.g., 14:00 wall-time é salvo como 14:00 UTC (14:00:00.000Z).
-      // Ao retirar o Z da string ISO, a recriação usa o timezone local do servidor e converte para Date Correto.
-      const getLocalWallTime = (dateObj: Date | null | string): Date | null => {
+      // Helper: Servidores de Produção (Vercel) rodam em UTC puro, então parsear sem 'Z' falha e mantêm como UTC!
+      // Precisamos substituir o 'Z' falso pela timezone verdadeira do projeto (-03:00) 
+      // para forçar o JavaScript a entender e carregar como o intante exato do Brasil independente do servidor:
+      const getTrueInstant = (dateObj: Date | null | string): Date | null => {
          if (!dateObj) return null;
-         const iso = new Date(dateObj).toISOString();
-         return new Date(iso.replace('Z', ''));
+         const iso = new Date(dateObj).toISOString(); // "2026-03-28T14:32:00.000Z"
+         return new Date(iso.replace('Z', '-03:00'));
       };
 
       actions.forEach(action => {
-        const start = getLocalWallTime(action.startDate);
+        const start = getTrueInstant(action.startDate);
         if (start) start.setSeconds(0, 0);
         
-        const end = getLocalWallTime(action.endDate);
+        const end = getTrueInstant(action.endDate);
         if (end) end.setSeconds(0, 0);
         
         const postImageUrl = action.posts?.[0]?.post?.imageUrl || action.imageUrl;
@@ -184,9 +185,9 @@ export async function getActivities(projectId: string, limit: number = 50, page:
         let dateToYield: Date | null = null;
 
         if (start && end) {
-           const startIsToday = start.toDateString() === today.toDateString();
-           const endIsToday = end.toDateString() === today.toDateString();
-           const isSameDay = start.toDateString() === end.toDateString();
+           const startIsToday = brtFormatter.format(start) === todayBrtString;
+           const endIsToday = brtFormatter.format(end) === todayBrtString;
+           const isSameDay = brtFormatter.format(start) === brtFormatter.format(end);
 
            if (isSameDay && startIsToday) {
                if (now < start) {
@@ -220,7 +221,7 @@ export async function getActivities(projectId: string, limit: number = 50, page:
            }
         } else if (start) {
            // Only start date
-           if (start.toDateString() === today.toDateString()) {
+           if (brtFormatter.format(start) === todayBrtString) {
                dateToYield = start;
                if (now < start) {
                    statusToYield = "TODAY";
@@ -230,7 +231,7 @@ export async function getActivities(projectId: string, limit: number = 50, page:
            }
         } else if (end) {
            // Only end date
-           if (end.toDateString() === today.toDateString()) {
+           if (brtFormatter.format(end) === todayBrtString) {
                dateToYield = end;
                if (now > end) {
                    statusToYield = "ENDED";
