@@ -11,6 +11,9 @@ export async function GET(request: Request) {
     }
 
     const categoryTitle = searchParams.get("categoryTitle");
+    const excludeEventActions = searchParams.get("excludeEventActions") === "true";
+    const takeParam = searchParams.get("take");
+    const takeCount = takeParam ? Math.min(parseInt(takeParam), 100) : 50;
 
     const posts = await prisma.post.findMany({
       where: { 
@@ -28,8 +31,17 @@ export async function GET(request: Request) {
             }
           }
         } : {}),
+        ...(excludeEventActions ? {
+          actions: {
+            none: {
+              action: {
+                type: { in: ["Evento", "Atividade"] }
+              }
+            }
+          }
+        } : {}),
       },
-      take: 10,
+      take: takeCount,
       include: {
         categories: {
           include: { category: true }
