@@ -11,6 +11,7 @@ import {
   UserIcon,
   DocsIcon,
   GridIcon,
+  PageIcon,
 } from "../icons/index";
 
 type NavItem = {
@@ -39,6 +40,15 @@ const navItems: NavItem[] = [
       { name: "Ações", path: "/adm/actions" },
       { name: "Importar", path: "/adm/importar" },
       { name: "Eventos - Anpof", path: "/adm/anpof" },
+    ],
+  },
+  {
+    icon: <PageIcon />,
+    name: "Biblioteca",
+    subItems: [
+      { name: "Revistas", path: "/adm/journals" },
+      { name: "Edições", path: "/adm/issues" },
+      { name: "Artigos", path: "/adm/articles" },
     ],
   },
   {
@@ -244,7 +254,7 @@ const AppSidebar: React.FC = () => {
                 const projectRole = (session?.user as any)?.projectRole;
                 const isAdmin = userRole === "ADMIN" || projectRole === "admin";
                 const isEditor = projectRole === "editor";
-                
+
                 if (!isAdmin && !isEditor) return null;
 
                 const allowedNavItems = navItems.filter((item) => {

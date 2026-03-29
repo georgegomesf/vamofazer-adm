@@ -2,28 +2,26 @@
 
 import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { getPostById } from "@/actions/posts";
-import PostEditor from "@/components/admin/content/PostEditor";
-import { useProject } from "@/context/ProjectContext";
+import { getIssue } from "@/actions/library";
+import IssueEditor from "@/components/admin/library/IssueEditor";
 import { Loader2 } from "lucide-react";
 
-export default function EditPostPage() {
+export default function EditIssuePage() {
   const params = useParams();
   const id = params.id as string;
-  const [post, setPost] = useState<any>(null);
+  const [issue, setIssue] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const { project } = useProject();
 
   useEffect(() => {
-    async function fetchPost() {
-      const data = await getPostById(id);
-      setPost(data);
+    async function fetchIssue() {
+      const data = await getIssue(id);
+      setIssue(data);
       setLoading(false);
     }
-    fetchPost();
+    fetchIssue();
   }, [id]);
 
-  if (loading || !project) {
+  if (loading) {
     return (
       <div className="flex h-[400px] items-center justify-center">
         <Loader2 className="h-10 w-10 animate-spin text-brand-500" />
@@ -31,13 +29,13 @@ export default function EditPostPage() {
     );
   }
 
-  if (!post) {
+  if (!issue) {
     return (
       <div className="py-20 text-center">
-        <h2 className="text-xl font-bold">Postagem não encontrada.</h2>
+        <h2 className="text-xl font-bold">Edição não encontrada.</h2>
       </div>
     );
   }
 
-  return <PostEditor post={post} projectId={project.id} />;
+  return <IssueEditor issue={issue} />;
 }

@@ -1,12 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import {
-  Save, Loader2, FileText, Image as ImageIcon, Calendar, Tag as TagIcon,
-  Layout, ChevronLeft, Eye, Edit3, Trash2, Link as LinkIcon, Plus,
-  X as CloseIcon, Clock, ListTodo, Type, Paperclip, Search, ExternalLink, Send,
-  ExternalLinkIcon
-} from "lucide-react";
+import { Save, Loader2, ChevronLeft, Image as ImageIcon, Layout, Tag as TagIcon, Plus, X as CloseIcon, Trash2, Paperclip, Type, Calendar, Send, ExternalLink as ExternalLinkIcon, Link as LinkIcon, Clock, ListTodo, Search, Book, Layers, FileText } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Button from "@/components/ui/button/Button";
 import { createPost, updatePost } from "@/actions/posts";
@@ -17,12 +12,16 @@ import { getActions } from "@/actions/actions";
 import { uploadImage, deleteImage } from "@/actions/upload";
 import QuickAttachmentModal from "./QuickAttachmentModal";
 import QuickActionModal from "./QuickActionModal";
+import QuickLibraryModal from "./QuickLibraryModal";
+import { getJournals, getIssues, getArticles, getJournal, getIssue, getArticle } from "@/actions/library";
+import { createAttachment } from "@/actions/attachments";
 
 interface PostEditorProps {
   post?: any; // If provided, it's edit mode
+  projectId: string;
 }
 
-export default function PostEditor({ post }: PostEditorProps) {
+export default function PostEditor({ post, projectId }: PostEditorProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
@@ -32,9 +31,14 @@ export default function PostEditor({ post }: PostEditorProps) {
   const [allActions, setAllActions] = useState<any[]>([]);
   const [isAttachmentModalOpen, setIsAttachmentModalOpen] = useState(false);
   const [isActionModalOpen, setIsActionModalOpen] = useState(false);
+  const [isLibraryModalOpen, setIsLibraryModalOpen] = useState(false);
   const [tagSearch, setTagSearch] = useState("");
   const [tagDropdownOpen, setTagDropdownOpen] = useState(false);
   const webUrl = process.env.NEXT_PUBLIC_WEB_SERVICE_URL || "http://localhost:3000";
+
+  const [allJournals, setAllJournals] = useState<any[]>([]);
+  const [allIssues, setAllIssues] = useState<any[]>([]);
+  const [allArticles, setAllArticles] = useState<any[]>([]);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -46,23 +50,31 @@ export default function PostEditor({ post }: PostEditorProps) {
     categoryIds: [] as string[],
     attachmentIds: [] as string[],
     actionIds: [] as string[],
+    journalIds: [] as string[],
+    issueIds: [] as string[],
+    articleIds: [] as string[],
     publishedAt: null as string | null,
   });
 
-  const projectId = process.env.NEXT_PUBLIC_PROJECT_ID as string;
+  const hasImported = React.useRef(false);
 
-  const formatToLocalDatetime = (dateString?: string | Date | null) => {
-    if (!dateString) return null;
-
-    const d = new Date(dateString);
-    if (isNaN(d.getTime())) return null;
-
-    const pad = (n: number) => n.toString().padStart(2, '0');
-    return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}T${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
+  // Local helper to format date for datetime-local input
+  const formatToLocalDatetime = (date: Date | string | null) => {
+    if (!date) return null;
+    try {
+      const d = new Date(date);
+      if (isNaN(d.getTime())) return null;
+      const z = d.getTimezoneOffset() * 60 * 1000;
+      const localDate = new Date(d.getTime() - z);
+      return localDate.toISOString().slice(0, 16);
+    } catch (e) {
+      return null;
+    }
   };
 
   useEffect(() => {
     fetchData();
+
     if (post) {
       setFormData({
         title: post.title || "",
@@ -74,55 +86,160 @@ export default function PostEditor({ post }: PostEditorProps) {
         tagIds: post.tags?.filter((pt: any) => pt.tag).map((pt: any) => pt.tagId) || [],
         attachmentIds: post.attachments?.filter((pa: any) => pa.attachment).map((pa: any) => pa.attachmentId) || [],
         actionIds: post.actions?.filter((pa: any) => pa.action).map((pa: any) => pa.actionId) || [],
+        journalIds: post.postJournals?.filter((pj: any) => pj.journal).map((pj: any) => pj.journalId) || [],
+        issueIds: post.postIssues?.filter((pi: any) => pi.issue).map((pi: any) => pi.issueId) || [],
+        articleIds: post.postArticles?.filter((pa: any) => pa.article).map((pa: any) => pa.articleId) || [],
         publishedAt: formatToLocalDatetime(post.publishedAt) || null,
       });
     } else {
-      // Pre-fill from import tool query params
-      const importTitle = searchParams.get("title") || "";
+      // Check for URL-based import (from Bookmarklet or Library)
+      const importTitle = searchParams.get("title");
       const importSummary = searchParams.get("summary") || "";
       const importImageUrl = searchParams.get("imageUrl") || "";
-      const importEmbedUrl = searchParams.get("embedUrl") || "";
-      const importSourceUrl = searchParams.get("sourceUrl") || "";
+      const importSourceUrl = searchParams.get("sourceUrl");
+      const importEmbedUrl = searchParams.get("embedUrl");
+      
+      const libImportType = searchParams.get("importType");
+      const libImportId = searchParams.get("importId");
 
-      if (importTitle) {
-        const generatedSlug = importTitle
-          .toLowerCase()
-          .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "")
-          .replace(/[^\w\s-]/g, "")
-          .replace(/\s+/g, "-");
+      const handleImport = async () => {
+        if (hasImported.current) return;
+        hasImported.current = true;
+        
+        if (libImportType && libImportId) {
+          setLoading(true);
+          try {
+            let data: any = null;
+            if (libImportType === "journal") {
+              data = await getJournal(libImportId);
+              if (data) {
+                const generatedSlug = data.title
+                  .toLowerCase()
+                  .normalize("NFD")
+                  .replace(/[\u0300-\u036f]/g, "")
+                  .replace(/[^\w\s-]/g, "")
+                  .replace(/\s+/g, "-");
 
-        let initialContent = "";
-        if (importEmbedUrl) {
-          initialContent = `<iframe src="${importEmbedUrl}" width="100%" height="400" frameborder="0" allowfullscreen></iframe>\n\n`;
+                setFormData(prev => ({
+                  ...prev,
+                  title: data.title,
+                  slug: generatedSlug,
+                  summary: data.description || "",
+                  content: (data.description || "") + (data.link ? `\n\nFonte: [${data.link}](${data.link})` : ""),
+                  journalIds: [data.id],
+                }));
+              }
+            } else if (libImportType === "issue") {
+              data = await getIssue(libImportId);
+              if (data) {
+                const generatedSlug = data.title
+                  .toLowerCase()
+                  .normalize("NFD")
+                  .replace(/[\u0300-\u036f]/g, "")
+                  .replace(/[^\w\s-]/g, "")
+                  .replace(/\s+/g, "-");
+
+                setFormData(prev => ({
+                  ...prev,
+                  title: data.title,
+                  slug: generatedSlug,
+                  summary: data.description || "",
+                  content: (data.description || "") + (data.link ? `\n\nFonte: [${data.link}](${data.link})` : ""),
+                  imageUrl: data.coverUrl || "",
+                  issueIds: [data.id],
+                  journalIds: data.journalId ? [data.journalId] : [],
+                  publishedAt: formatToLocalDatetime(data.datePublished) || null,
+                }));
+              }
+            } else if (libImportType === "article") {
+              data = await getArticle(libImportId);
+              if (data) {
+                const generatedSlug = data.title
+                  .toLowerCase()
+                  .normalize("NFD")
+                  .replace(/[\u0300-\u036f]/g, "")
+                  .replace(/[^\w\s-]/g, "")
+                  .replace(/\s+/g, "-");
+
+                // ABNT Reference: Título da Revista, v. X, n. Y, p. Z-Z, ano.
+                const journalTitle = data.issue?.journal?.title || "";
+                const vol = data.issue?.volume ? `v. ${data.issue.volume}` : "";
+                const num = data.issue?.number ? `n. ${data.issue.number}` : "";
+                const pages = data.pages ? `p. ${data.pages}` : "";
+                const year = data.issue?.year || "";
+                
+                const abntRef = [journalTitle, vol, num, pages, year].filter(Boolean).join(", ") + ".";
+
+                const sourceLink = data.url || (data.doi ? `https://doi.org/${data.doi}` : null);
+
+                setFormData(prev => ({
+                  ...prev,
+                  title: data.title,
+                  slug: generatedSlug,
+                  summary: abntRef,
+                  content: (data.abstract || "") + (sourceLink ? `\n\nFonte: [${sourceLink}](${sourceLink})` : ""),
+                  articleIds: [data.id],
+                  issueIds: [data.issueId],
+                  publishedAt: formatToLocalDatetime(data.datePublished) || null,
+                }));
+              }
+            }
+          } catch (error) {
+            console.error("Library import failed:", error);
+          } finally {
+            setLoading(false);
+          }
+          return;
         }
-        if (importSourceUrl) {
-          initialContent += `Fonte: [${importSourceUrl}](${importSourceUrl})`;
-        }
 
-        setFormData(prev => ({
-          ...prev,
-          title: importTitle,
-          slug: generatedSlug,
-          summary: importSummary,
-          imageUrl: importImageUrl,
-          content: initialContent,
-        }));
-      }
+        if (importTitle) {
+          const generatedSlug = importTitle
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[^\w\s-]/g, "")
+            .replace(/\s+/g, "-");
+
+          let initialContent = "";
+          if (importEmbedUrl) {
+            initialContent = `<iframe src="${importEmbedUrl}" width="100%" height="400" frameborder="0" allowfullscreen></iframe>\n\n`;
+          }
+          if (importSourceUrl) {
+            initialContent += `Fonte: [${importSourceUrl}](${importSourceUrl})`;
+          }
+
+          setFormData(prev => ({
+            ...prev,
+            title: importTitle,
+            slug: generatedSlug,
+            summary: importSummary,
+            imageUrl: importImageUrl,
+            content: initialContent,
+          }));
+        }
+      };
+
+      handleImport();
     }
   }, [post, searchParams]);
 
   async function fetchData() {
-    const [cats, tags, atts, acts] = await Promise.all([
+    const [cats, tags, atts, acts, journals, issues, articles] = await Promise.all([
       getCategories(projectId),
       getTags(projectId),
       getAttachments(projectId),
-      getActions(projectId)
+      getActions(projectId),
+      getJournals(),
+      getIssues({ pageSize: 100 }), // Fetch some to have for lookup
+      getArticles({ pageSize: 100 })
     ]);
     setCategories(cats);
     setAllTags(tags);
     setAllAttachments(atts);
     setAllActions(acts);
+    setAllJournals(journals);
+    setAllIssues(issues.issues || []);
+    setAllArticles(articles.articles || []);
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -204,6 +321,23 @@ export default function PostEditor({ post }: PostEditorProps) {
     }));
   };
 
+  const handleLibraryLink = (id: string, type: 'journal' | 'issue' | 'article') => {
+    const fieldName = type === 'journal' ? 'journalIds' : type === 'issue' ? 'issueIds' : 'articleIds';
+    setFormData(prev => ({
+      ...prev,
+      [fieldName]: [...(prev as any)[fieldName], id]
+    }));
+    fetchData(); // Refresh list to get names if needed
+  };
+
+  const handleLibraryToggle = (id: string, type: 'journal' | 'issue' | 'article') => {
+    const fieldName = type === 'journal' ? 'journalIds' : type === 'issue' ? 'issueIds' : 'articleIds';
+    setFormData(prev => ({
+      ...prev,
+      [fieldName]: (prev as any)[fieldName].filter((i: string) => i !== id)
+    }));
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -230,10 +364,24 @@ export default function PostEditor({ post }: PostEditorProps) {
     e?.preventDefault();
     setLoading(true);
 
-    const pubAt = explicitPublishedAt !== undefined ? explicitPublishedAt : formData.publishedAt;
+    const pubAt = (explicitPublishedAt !== undefined ? explicitPublishedAt : formData.publishedAt) as string | null;
+    let publishedAtIso: string | null = null;
+    if (pubAt) {
+      try {
+        if (pubAt.length === 16 && !pubAt.includes("Z")) {
+          publishedAtIso = new Date(pubAt + ":00Z").toISOString();
+        } else {
+          publishedAtIso = new Date(pubAt).toISOString();
+        }
+      } catch (e) {
+        console.error("Invalid date:", pubAt);
+        publishedAtIso = null;
+      }
+    }
+
     const submissionData = {
       ...formData,
-      publishedAt: pubAt ? new Date(pubAt + (pubAt.includes("Z") ? "" : "Z")).toISOString() : null,
+      publishedAt: publishedAtIso,
     };
 
     try {
@@ -280,7 +428,7 @@ export default function PostEditor({ post }: PostEditorProps) {
         <div className="flex items-center gap-3">
           {formData.slug && (
             <a
-              href={`${webUrl}/p/${formData.slug}?preview=true`}
+              href={`${webUrl}/p/${formData.slug}${(!formData.publishedAt || new Date(formData.publishedAt) > new Date()) ? '?preview=true' : ''}`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center font-medium gap-2 px-5 py-3.5 text-sm rounded-lg transition bg-white text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-400 dark:ring-gray-700 dark:hover:bg-white/[0.03] dark:hover:text-gray-300"
@@ -299,22 +447,24 @@ export default function PostEditor({ post }: PostEditorProps) {
             Salvar
           </Button>
 
-          {!formData.publishedAt ? (
+          {!post?.publishedAt ? (
             <Button
               onClick={async (e) => {
                 const now = new Date();
                 const pad = (n: number) => n.toString().padStart(2, '0');
-                const nowStr = `${now.getUTCFullYear()}-${pad(now.getUTCMonth() + 1)}-${pad(now.getUTCDate())}T${pad(now.getUTCHours())}:${pad(now.getUTCMinutes())}`;
+                const nowStr = `${now.getUTCFullYear()}-${pad(now.getUTCMonth() + 1)}-${now.getUTCDate() < 10 ? '0' + now.getUTCDate() : now.getUTCDate()}T${pad(now.getUTCHours())}:${pad(now.getUTCMinutes())}`;
 
-                setFormData(prev => ({ ...prev, publishedAt: nowStr }));
+                const targetDate = formData.publishedAt || nowStr;
+                setFormData(prev => ({ ...prev, publishedAt: targetDate }));
+                
                 // Wait a tick for state to update before submit
                 setTimeout(() => {
                   const fakeEvent = { preventDefault: () => { } } as React.FormEvent;
-                  handleSubmit(fakeEvent, nowStr);
+                  handleSubmit(fakeEvent, targetDate);
                 }, 10);
               }}
               disabled={loading}
-              className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 border-none"
+              className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 border-none px-6"
             >
               <Send className="h-4 w-4" /> Publicar
             </Button>
@@ -328,7 +478,7 @@ export default function PostEditor({ post }: PostEditorProps) {
                 }, 10);
               }}
               disabled={loading}
-              className="flex items-center gap-2 bg-red-600 hover:bg-red-700 border-none text-white"
+              className="flex items-center gap-2 bg-red-600 hover:bg-red-700 border-none text-white px-6"
             >
               <CloseIcon className="h-4 w-4" /> Retirar
             </Button>
@@ -573,7 +723,7 @@ export default function PostEditor({ post }: PostEditorProps) {
           <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
             <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
               <Type className="h-5 w-5 text-brand-500" />
-              Ações Vinculadas
+              Ações
             </h3>
             <div className="space-y-4">
               <div className="flex flex-col gap-2 pt-2">
@@ -654,6 +804,70 @@ export default function PostEditor({ post }: PostEditorProps) {
 
           <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
             <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
+              <Book className="h-5 w-5 text-brand-500" />
+              Biblioteca
+            </h3>
+            <div className="space-y-4">
+              <div className="flex flex-col gap-2 pt-2">
+                {/* Journals */}
+                {allJournals?.filter(j => formData.journalIds.includes(j.id)).map((j) => (
+                  <div key={j.id} className="px-3 py-2 rounded-xl text-xs font-medium bg-indigo-50 border border-indigo-500 text-indigo-900 dark:bg-indigo-500/10 dark:text-indigo-300 shadow-sm flex items-center justify-between group">
+                    <div className="flex items-center gap-2 overflow-hidden">
+                      <Book className="h-3.5 w-3.5" />
+                      <div className="flex flex-col gap-0.5 overflow-hidden">
+                        <span className="font-bold truncate" title={j.title}>{j.title}</span>
+                        <span className="opacity-60 text-[10px]">Revista</span>
+                      </div>
+                    </div>
+                    <button type="button" onClick={() => handleLibraryToggle(j.id, 'journal')} className="p-1 hover:bg-indigo-500 hover:text-white rounded-lg transition-colors">
+                      <CloseIcon className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+                {/* Issues */}
+                {allIssues?.filter(i => formData.issueIds.includes(i.id)).map((i) => (
+                  <div key={i.id} className="px-3 py-2 rounded-xl text-xs font-medium bg-amber-50 border border-amber-500 text-amber-900 dark:bg-amber-500/10 dark:text-amber-300 shadow-sm flex items-center justify-between group">
+                    <div className="flex items-center gap-2 overflow-hidden">
+                      <Layers className="h-3.5 w-3.5" />
+                      <div className="flex flex-col gap-0.5 overflow-hidden">
+                        <span className="font-bold truncate" title={i.title}>{i.title}</span>
+                        <span className="opacity-60 text-[10px]">Edição • {i.journal?.title}</span>
+                      </div>
+                    </div>
+                    <button type="button" onClick={() => handleLibraryToggle(i.id, 'issue')} className="p-1 hover:bg-amber-500 hover:text-white rounded-lg transition-colors">
+                      <CloseIcon className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+                {/* Articles */}
+                {allArticles?.filter(a => formData.articleIds.includes(a.id)).map((a) => (
+                  <div key={a.id} className="px-3 py-2 rounded-xl text-xs font-medium bg-emerald-50 border border-emerald-500 text-emerald-900 dark:bg-emerald-500/10 dark:text-emerald-300 shadow-sm flex items-center justify-between group">
+                    <div className="flex items-center gap-2 overflow-hidden">
+                      <FileText className="h-3.5 w-3.5" />
+                      <div className="flex flex-col gap-0.5 overflow-hidden">
+                        <span className="font-bold truncate" title={a.title}>{a.title}</span>
+                        <span className="opacity-60 text-[10px]">Artigo • {a.authors}</span>
+                      </div>
+                    </div>
+                    <button type="button" onClick={() => handleLibraryToggle(a.id, 'article')} className="p-1 hover:bg-emerald-500 hover:text-white rounded-lg transition-colors">
+                      <CloseIcon className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsLibraryModalOpen(true)}
+                className="w-full text-xs py-2 h-auto flex items-center justify-center gap-2"
+              >
+                <Plus className="h-3 w-3" /> Gerenciar Biblioteca
+              </Button>
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+            <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
               <Calendar className="h-5 w-5 text-brand-500" />
               Programar
             </h3>
@@ -701,6 +915,15 @@ export default function PostEditor({ post }: PostEditorProps) {
         onSuccess={handleActionModalSuccess}
         allActions={allActions}
         linkedActionIds={formData.actionIds}
+      />
+
+      <QuickLibraryModal
+        isOpen={isLibraryModalOpen}
+        onClose={() => setIsLibraryModalOpen(false)}
+        onSuccess={handleLibraryLink}
+        linkedJournalIds={formData.journalIds}
+        linkedIssueIds={formData.issueIds}
+        linkedArticleIds={formData.articleIds}
       />
     </div>
   );

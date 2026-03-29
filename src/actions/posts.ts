@@ -44,6 +44,15 @@ export async function getPostById(id: string) {
         actions: {
           include: { action: true },
         },
+        postJournals: {
+          include: { journal: true },
+        },
+        postIssues: {
+          include: { issue: true },
+        },
+        postArticles: {
+          include: { article: true },
+        },
       },
     });
     return post;
@@ -58,7 +67,7 @@ export async function createPost(projectId: string, data: any) {
   try {
     const session = await auth();
     const userId = (session?.user as any)?.id;
-    const { tagIds, categoryIds, attachmentIds, actionIds, ...postData } = data;
+    const { tagIds, categoryIds, attachmentIds, actionIds, journalIds, issueIds, articleIds, ...postData } = data;
 
     const post = await prisma.post.create({
       data: {
@@ -83,6 +92,21 @@ export async function createPost(projectId: string, data: any) {
         actions: {
           create: actionIds?.map((actionId: string) => ({
             action: { connect: { id: actionId } }
+          }))
+        },
+        postJournals: {
+          create: journalIds?.map((journalId: string) => ({
+            journal: { connect: { id: journalId } }
+          }))
+        },
+        postIssues: {
+          create: issueIds?.map((issueId: string) => ({
+            issue: { connect: { id: issueId } }
+          }))
+        },
+        postArticles: {
+          create: articleIds?.map((articleId: string) => ({
+            article: { connect: { id: articleId } }
           }))
         }
       },
@@ -138,6 +162,9 @@ export async function createPost(projectId: string, data: any) {
     revalidatePath("/adm/posts");
     return { success: true, post };
   } catch (error: any) {
+    if (error.code === 'P2002') {
+      return { success: false, error: "Já existe uma postagem com este link (slug). Por favor, altere o campo do link antes de salvar." };
+    }
     console.error("Error creating post:", error);
     return { success: false, error: error.message };
   }
@@ -148,7 +175,7 @@ export async function updatePost(id: string, data: any) {
   try {
     const session = await auth();
     const userId = (session?.user as any)?.id;
-    const { tagIds, categoryIds, attachmentIds, actionIds, ...postData } = data;
+    const { tagIds, categoryIds, attachmentIds, actionIds, journalIds, issueIds, articleIds, ...postData } = data;
 
     // Snapshot current state BEFORE deleting relations (to compute diffs)
     const previousPost = await prisma.post.findUnique({
@@ -168,6 +195,9 @@ export async function updatePost(id: string, data: any) {
     await prisma.postTag.deleteMany({ where: { postId: id } });
     await prisma.postAttachment.deleteMany({ where: { postId: id } });
     await prisma.postAction.deleteMany({ where: { postId: id } });
+    await prisma.postJournal.deleteMany({ where: { postId: id } });
+    await prisma.postIssue.deleteMany({ where: { postId: id } });
+    await prisma.postArticle.deleteMany({ where: { postId: id } });
 
     const post = await prisma.post.update({
       where: { id },
@@ -192,6 +222,21 @@ export async function updatePost(id: string, data: any) {
         actions: {
           create: actionIds?.map((actionId: string) => ({
             action: { connect: { id: actionId } }
+          }))
+        },
+        postJournals: {
+          create: journalIds?.map((journalId: string) => ({
+            journal: { connect: { id: journalId } }
+          }))
+        },
+        postIssues: {
+          create: issueIds?.map((issueId: string) => ({
+            issue: { connect: { id: issueId } }
+          }))
+        },
+        postArticles: {
+          create: articleIds?.map((articleId: string) => ({
+            article: { connect: { id: articleId } }
           }))
         }
       },
@@ -279,6 +324,9 @@ export async function updatePost(id: string, data: any) {
 
     return { success: true, post };
   } catch (error: any) {
+    if (error.code === 'P2002') {
+      return { success: false, error: "Já existe outra postagem com este link (slug). Por favor, altere o campo do link antes de salvar." };
+    }
     console.error("Error updating post:", error);
     return { success: false, error: error.message };
   }

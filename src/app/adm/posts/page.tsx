@@ -179,11 +179,11 @@ export default function PostsPage() {
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <a 
-                        href={`${webUrl}/p/${post.slug}${post.publishedAt ? '' : '?preview=true'}`} 
+                        href={`${webUrl}/p/${post.slug}${(!post.publishedAt || new Date(post.publishedAt) > new Date()) ? '?preview=true' : ''}`} 
                         target="_blank" 
                         rel="noopener noreferrer"
                         className="p-2 text-gray-400 hover:text-blue-500 transition-colors" 
-                        title={post.publishedAt ? "Acessar no Site" : "Visualizar no Site (Preview)"}
+                        title={(!post.publishedAt || new Date(post.publishedAt) > new Date()) ? "Visualizar no Site (Preview)" : "Acessar no Site"}
                       >
                         <ExternalLink className="h-4 w-4" />
                       </a>

@@ -58,6 +58,25 @@ export async function GET(
         tags: { include: { tag: true } },
         actions: { include: { action: true } },
         attachments: { include: { attachment: true } },
+        postJournals: { include: { journal: true } },
+        postIssues: { 
+          include: { 
+            issue: {
+              include: { journal: true }
+            } 
+          } 
+        },
+        postArticles: { 
+          include: { 
+            article: {
+              include: {
+                issue: {
+                  include: { journal: true }
+                }
+              }
+            } 
+          } 
+        },
       },
     });
 

@@ -183,8 +183,11 @@ model Post {
   actions      PostAction[]
   attachments  PostAttachment[]
   categories   PostCategory[]
-  tags         PostTag[]
-  UserInterest UserInterest[]
+  tags           PostTag[]
+  UserInterest   UserInterest[]
+  postJournals   PostJournal[]
+  postIssues     PostIssue[]
+  postArticles   PostArticle[]
 }
 
 model Category {
@@ -350,4 +353,79 @@ enum UserRole {
   USER
   VISITOR
   BLOCKED
+}
+
+model Journal {
+  id          String   @id @default(cuid())
+  title       String
+  link        String?
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  issues      Issue[]
+  posts       PostJournal[]
+}
+
+model Issue {
+  id              String    @id @default(cuid())
+  journalId       String
+  title           String
+  volume          String?
+  number          String?
+  year            Int?
+  description     String?
+  datePublished   DateTime?
+  link            String?
+  coverUrl        String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  journal         Journal   @relation(fields: [journalId], references: [id], onDelete: Cascade)
+  articles        Article[]
+  posts           PostIssue[]
+}
+
+model Article {
+  id              String    @id @default(cuid())
+  issueId         String
+  title           String
+  abstract        String?   @map("resumo")
+  authors         String?   @map("autor")
+  doi             String?
+  url             String?   @map("link")
+  pages           String?   @map("paginas")
+  language        String?   @map("idioma")
+  datePublished   DateTime? @map("data_publicacao")
+  keywords        String?   @map("palavras")
+  bibliography    String?   @map("referencias")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  issue           Issue     @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  posts           PostArticle[]
+}
+
+model PostJournal {
+  postId    String
+  journalId String
+  post      Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  journal   Journal @relation(fields: [journalId], references: [id], onDelete: Cascade)
+
+  @@id([postId, journalId])
+}
+
+model PostIssue {
+  postId  String
+  issueId String
+  post    Post  @relation(fields: [postId], references: [id], onDelete: Cascade)
+  issue   Issue @relation(fields: [issueId], references: [id], onDelete: Cascade)
+
+  @@id([postId, issueId])
+}
+
+model PostArticle {
+  postId    String
+  articleId String
+  post      Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  article   Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@id([postId, articleId])
 }
