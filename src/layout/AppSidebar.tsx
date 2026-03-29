@@ -253,14 +253,28 @@ const AppSidebar: React.FC = () => {
                 const userRole = (session?.user as any)?.role;
                 const projectRole = (session?.user as any)?.projectRole;
                 const isAdmin = userRole === "ADMIN" || projectRole === "admin";
+                const isManager = projectRole === "manager";
                 const isEditor = projectRole === "editor";
 
-                if (!isAdmin && !isEditor) return null;
+                if (!isAdmin && !isManager && !isEditor) return null;
 
-                const allowedNavItems = navItems.filter((item) => {
-                  if (item.name === "Configurações") return isAdmin;
+                let allowedNavItems = navItems.filter((item) => {
+                  if (item.name === "Configurações") return isAdmin || isManager;
+                  if (item.name === "Recursos") return isAdmin || isManager;
                   return true;
                 });
+
+                if (isManager) {
+                  allowedNavItems = allowedNavItems.map(item => {
+                    if (item.name === "Configurações") {
+                      return {
+                        ...item,
+                        subItems: item.subItems?.filter(sub => sub.path !== "/adm/projeto")
+                      };
+                    }
+                    return item;
+                  });
+                }
 
                 return renderMenuItems(allowedNavItems, "main");
               })()}

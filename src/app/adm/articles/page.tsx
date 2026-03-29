@@ -7,8 +7,14 @@ import Button from "@/components/ui/button/Button";
 import { getArticles, deleteArticle } from "@/actions/library";
 import DeleteModal from "@/components/admin/content/DeleteModal";
 import Pagination from "@/components/ui/pagination/Pagination";
+import { useSession } from "next-auth/react";
 
 export default function ArticlesPage() {
+  const { data: session } = useSession();
+  const userRole = (session?.user as any)?.role;
+  const projectRole = (session?.user as any)?.projectRole;
+  const isAdmin = userRole === "ADMIN" || projectRole === "admin";
+
   const [search, setSearch] = useState("");
   const [articles, setArticles] = useState<any[]>([]);
   const [totalItems, setTotalItems] = useState(0);
@@ -63,11 +69,13 @@ export default function ArticlesPage() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Artigos</h1>
           <p className="text-gray-500 dark:text-gray-400">Gerencie os artigos científicos da biblioteca.</p>
         </div>
-        <Link href="/adm/articles/new">
-          <Button className="flex items-center gap-2">
-            <Plus className="h-4 w-4" /> Novo Artigo
-          </Button>
-        </Link>
+        {isAdmin && (
+          <Link href="/adm/articles/new">
+            <Button className="flex items-center gap-2">
+              <Plus className="h-4 w-4" /> Novo Artigo
+            </Button>
+          </Link>
+        )}
       </div>
 
       <div className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
@@ -156,14 +164,18 @@ export default function ArticlesPage() {
                             <Plus className="h-4 w-4" />
                           </button>
                         </Link>
-                        <Link href={`/adm/articles/${article.id}`}>
-                          <button className="p-2 text-gray-400 hover:text-brand-500 transition-colors" title="Editar">
-                            <Edit className="h-4 w-4" />
-                          </button>
-                        </Link>
-                        <button onClick={() => setDeleteId(article.id)} className="p-2 text-gray-400 hover:text-red-500 transition-colors" title="Excluir">
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                        {isAdmin && (
+                          <>
+                            <Link href={`/adm/articles/${article.id}`}>
+                              <button className="p-2 text-gray-400 hover:text-brand-500 transition-colors" title="Editar">
+                                <Edit className="h-4 w-4" />
+                              </button>
+                            </Link>
+                            <button onClick={() => setDeleteId(article.id)} className="p-2 text-gray-400 hover:text-red-500 transition-colors" title="Excluir">
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>

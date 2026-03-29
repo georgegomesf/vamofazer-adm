@@ -37,11 +37,31 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
 
   const userRole = (session.user as any)?.role;
   const projectRole = (session.user as any)?.projectRole;
+  
   const isAdmin = userRole === "ADMIN" || projectRole === "admin";
+  const isManager = projectRole === "manager";
   const isEditor = projectRole === "editor";
-  const hasAccess = isAdmin || isEditor;
+  const hasAccess = isAdmin || isManager || isEditor;
 
-  const isAdminRoute = pathname?.startsWith("/adm/projeto") || pathname?.startsWith("/adm/usuarios");
+  const isProjectRoute = pathname?.startsWith("/adm/projeto");
+  const isSettingsRoute = pathname?.startsWith("/adm/projeto") || pathname?.startsWith("/adm/usuarios");
+  const isResourcesRoute = pathname?.startsWith("/adm/attachments") || pathname?.startsWith("/adm/actions") || pathname?.startsWith("/adm/importar") || pathname?.startsWith("/adm/anpof");
+  
+  // They can view the main list, but editing/creating library items is blocked for managers & editors.
+  const isLibraryEditRoute = 
+    (pathname?.startsWith("/adm/journals/") && pathname !== "/adm/journals") ||
+    (pathname?.startsWith("/adm/issues/") && pathname !== "/adm/issues") ||
+    (pathname?.startsWith("/adm/articles/") && pathname !== "/adm/articles");
+
+  // Determines if the current user should be blocked from the current path
+  let isRouteBlocked = false;
+  if (!hasAccess) {
+    isRouteBlocked = true;
+  } else if (isManager && (isProjectRoute || isLibraryEditRoute)) {
+    isRouteBlocked = true;
+  } else if (isEditor && (isSettingsRoute || isResourcesRoute || isLibraryEditRoute)) {
+    isRouteBlocked = true;
+  }
 
   if (!hasAccess) {
     return (
@@ -80,7 +100,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (isAdminRoute && !isAdmin) {
+  if (isRouteBlocked) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 text-center dark:bg-gray-900">
         <div className="w-full max-w-md bg-white rounded-3xl p-10 shadow-xl border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
@@ -93,7 +113,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2 dark:text-white">Acesso Restrito</h1>
           <p className="text-gray-500 mb-8 dark:text-gray-400">
-            Apenas administradores podem acessar esta página.
+            Você não tem permissão para acessar esta página com o seu perfil atual.
           </p>
           <button
             onClick={() => router.push("/adm")}

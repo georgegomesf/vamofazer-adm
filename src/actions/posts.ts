@@ -159,6 +159,57 @@ export async function createPost(projectId: string, data: any) {
       }
     }
 
+    // Create Activity: Journals Linked
+    if (journalIds?.length > 0 && post.publishedAt) {
+      for (const journalId of journalIds) {
+        const journal = await prisma.journal.findUnique({ where: { id: journalId } });
+        if (journal) {
+          await createActivity(projectId, {
+            type: "JOURNAL_LINKED",
+            title: journal.title,
+            description: `A revista foi vinculada à postagem "${post.title}".`,
+            url: `/p/${post.slug}`,
+            userId: post.createdBy || undefined,
+            metadata: { postId: post.id, journalId: journal.id }
+          });
+        }
+      }
+    }
+
+    // Create Activity: Issues Linked
+    if (issueIds?.length > 0 && post.publishedAt) {
+      for (const issueId of issueIds) {
+        const issue = await prisma.issue.findUnique({ where: { id: issueId } });
+        if (issue) {
+          await createActivity(projectId, {
+            type: "ISSUE_LINKED",
+            title: issue.title,
+            description: `A edição foi vinculada à postagem "${post.title}".`,
+            url: `/p/${post.slug}`,
+            userId: post.createdBy || undefined,
+            metadata: { postId: post.id, issueId: issue.id, imageUrl: issue.coverUrl }
+          });
+        }
+      }
+    }
+
+    // Create Activity: Articles Linked
+    if (articleIds?.length > 0 && post.publishedAt) {
+      for (const articleId of articleIds) {
+        const article = await prisma.article.findUnique({ where: { id: articleId } });
+        if (article) {
+          await createActivity(projectId, {
+            type: "ARTICLE_LINKED",
+            title: article.title,
+            description: `O artigo foi vinculado à postagem "${post.title}".`,
+            url: `/p/${post.slug}`,
+            userId: post.createdBy || undefined,
+            metadata: { postId: post.id, articleId: article.id }
+          });
+        }
+      }
+    }
+
     revalidatePath("/adm/posts");
     return { success: true, post };
   } catch (error: any) {
@@ -183,11 +234,18 @@ export async function updatePost(id: string, data: any) {
       include: {
         attachments: { select: { attachmentId: true } },
         actions: { select: { actionId: true } },
+        postJournals: { select: { journalId: true } },
+        postIssues: { select: { issueId: true } },
+        postArticles: { select: { articleId: true } },
       },
     });
 
     const prevAttachmentIds = new Set(previousPost?.attachments.map(a => a.attachmentId) ?? []);
     const prevActionIds = new Set(previousPost?.actions.map(a => a.actionId) ?? []);
+    const prevJournalIds = new Set(previousPost?.postJournals.map(j => j.journalId) ?? []);
+    const prevIssueIds = new Set(previousPost?.postIssues.map(i => i.issueId) ?? []);
+    const prevArticleIds = new Set(previousPost?.postArticles.map(a => a.articleId) ?? []);
+    
     const wasUnpublished = !previousPost?.publishedAt;
 
     // Delete existing relations first for update
@@ -248,13 +306,15 @@ export async function updatePost(id: string, data: any) {
     const addedImageToPublished = post.publishedAt && !wasUnpublished && (post.imageUrl && !previousPost?.imageUrl);
     
     // Novas ações ou anexos inseridos (verificação pré-laços)
-    const newActionIds = (actionIds ?? []).filter((aid: string) => !prevActionIds.has(aid));
-    const newAttachmentIds = (attachmentIds ?? []).filter((aid: string) => !prevAttachmentIds.has(aid));
-    const addedActionOrAttachment = post.publishedAt && (newActionIds.length > 0 || newAttachmentIds.length > 0);
+    const newActionIds = actionIds?.filter((id: string) => !prevActionIds.has(id)) || [];
+    const newAttachmentIds = attachmentIds?.filter((id: string) => !prevAttachmentIds.has(id)) || [];
+    const newJournalIds = journalIds?.filter((id: string) => !prevJournalIds.has(id)) || [];
+    const newIssueIds = issueIds?.filter((id: string) => !prevIssueIds.has(id)) || [];
+    const newArticleIds = articleIds?.filter((id: string) => !prevArticleIds.has(id)) || [];
 
-    // Se tornou-se publicado, recebeu imagem ou recebeu ação/anexo...
-    if (becamePublished || addedImageToPublished || addedActionOrAttachment) {
-      // Check if an activity already exists to avoid duplicates when unpublishing and publishing again
+    // Create POST_PUBLISHED activity only if transitioning from draft to published
+    // OR if it's already published but doesn't have an activity record (to fix legacy data)
+    if (post.publishedAt) {
       const existingActivities = await prisma.activity.findMany({
         where: { type: "POST_PUBLISHED", projectId: post.projectId },
         select: { id: true, metadata: true }
@@ -306,6 +366,57 @@ export async function updatePost(id: string, data: any) {
             url: `/p/${post.slug}`,
             userId: post.updatedBy || undefined,
             metadata: { postId: post.id, attachmentId: attachment.id }
+          });
+        }
+      }
+    }
+
+    // Activity: JOURNAL_LINKED — only for newly added journals
+    if (post.publishedAt) {
+      for (const journalId of newJournalIds) {
+        const journal = await prisma.journal.findUnique({ where: { id: journalId } });
+        if (journal) {
+          await createActivity(post.projectId, {
+            type: "JOURNAL_LINKED",
+            title: journal.title,
+            description: `A revista foi vinculada à postagem "${post.title}".`,
+            url: `/p/${post.slug}`,
+            userId: post.updatedBy || undefined,
+            metadata: { postId: post.id, journalId: journal.id }
+          });
+        }
+      }
+    }
+
+    // Activity: ISSUE_LINKED — only for newly added issues
+    if (post.publishedAt) {
+      for (const issueId of newIssueIds) {
+        const issue = await prisma.issue.findUnique({ where: { id: issueId } });
+        if (issue) {
+          await createActivity(post.projectId, {
+            type: "ISSUE_LINKED",
+            title: issue.title,
+            description: `A edição foi vinculada à postagem "${post.title}".`,
+            url: `/p/${post.slug}`,
+            userId: post.updatedBy || undefined,
+            metadata: { postId: post.id, issueId: issue.id, imageUrl: issue.coverUrl }
+          });
+        }
+      }
+    }
+
+    // Activity: ARTICLE_LINKED — only for newly added articles
+    if (post.publishedAt) {
+      for (const articleId of newArticleIds) {
+        const article = await prisma.article.findUnique({ where: { id: articleId } });
+        if (article) {
+          await createActivity(post.projectId, {
+            type: "ARTICLE_LINKED",
+            title: article.title,
+            description: `O artigo foi vinculado à postagem "${post.title}".`,
+            url: `/p/${post.slug}`,
+            userId: post.updatedBy || undefined,
+            metadata: { postId: post.id, articleId: article.id }
           });
         }
       }

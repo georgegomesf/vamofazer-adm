@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { pusherServer } from "@/lib/pusher";
 
-export type ActivityType = "POST_PUBLISHED" | "ACTION_LINKED" | "ATTACHMENT_LINKED" | "LIST_CREATED" | "ITEM_ADDED" | "NOTICE";
+export type ActivityType = "POST_PUBLISHED" | "ACTION_LINKED" | "ATTACHMENT_LINKED" | "LIST_CREATED" | "ITEM_ADDED" | "NOTICE" | "JOURNAL_LINKED" | "ISSUE_LINKED" | "ARTICLE_LINKED";
 
 export async function createActivity(projectId: string, data: {
   type: ActivityType;
@@ -62,7 +62,7 @@ export async function getActivities(projectId: string, limit: number = 50, page:
 
     // Base types everyone sees
     const orConditions: any[] = [
-      { type: { in: ["POST_PUBLISHED", "LIST_CREATED", "NOTICE"] } }
+      { type: { in: ["POST_PUBLISHED", "LIST_CREATED", "NOTICE", "JOURNAL_LINKED", "ISSUE_LINKED", "ARTICLE_LINKED"] } }
     ];
 
     if (userId) {
