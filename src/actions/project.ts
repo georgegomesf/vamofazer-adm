@@ -49,10 +49,22 @@ export async function updateProject(id: string, data: any) {
         coverUrl: data.coverUrl,
         backgroundUrl: data.backgroundUrl,
         defaultEntryRole: data.defaultEntryRole,
+        heroVisible: data.heroVisible,
+        newArrivalsVisible: data.newArrivalsVisible,
+        countdownVisible: data.countdownVisible,
+        bestSellersVisible: data.bestSellersVisible,
+        searchVisible: data.searchVisible,
+        heroLabel: data.heroLabel,
+        newArrivalsLabel: data.newArrivalsLabel,
+        countdownLabel: data.countdownLabel,
+        bestSellersLabel: data.bestSellersLabel,
+        searchLabel: data.searchLabel,
+        homeSectionOrder: data.homeSectionOrder,
       },
     });
 
     revalidatePath("/adm/projeto");
+    revalidatePath("/");
     return { success: true, project };
   } catch (error: any) {
     console.error("Error updating project:", error);

@@ -2,7 +2,25 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import { Save, Upload, X, Check, Loader2, Globe, Mail, Image as ImageIcon, Layout, Menu as MenuIcon, User as UserIcon, Trash2 } from "lucide-react";
+import { Save, Upload, X, Check, Loader2, Globe, Mail, Image as ImageIcon, Layout, Menu as MenuIcon, User as UserIcon, Trash2, GripVertical, ArrowUp, ArrowDown } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import Button from "@/components/ui/button/Button";
 import { getProject, updateProject } from "@/actions/project";
 import { uploadImage, deleteImage } from "@/actions/upload";
@@ -18,6 +36,72 @@ interface ProjectData {
   link: string | null;
   email: string | null;
   defaultEntryRole: string;
+  heroVisible: boolean;
+  newArrivalsVisible: boolean;
+  countdownVisible: boolean;
+  bestSellersVisible: boolean;
+  searchVisible: boolean;
+  heroLabel: string;
+  newArrivalsLabel: string;
+  countdownLabel: string;
+  bestSellersLabel: string;
+  searchLabel: string;
+  homeSectionOrder: any;
+}
+
+const DEFAULT_HOME_ORDER = ["search", "hero", "newArrivals", "countdown", "bestSellers"];
+
+const SECTION_LABELS: Record<string, string> = {
+  search: "Pesquisa",
+  hero: "Carrossel e Calendário",
+  newArrivals: "Agenda",
+  countdown: "Contagem Regressiva",
+  bestSellers: "Veja também"
+};
+
+function SortableItem({ id, label, isVisible, moveUp, moveDown, index, totalItems }: any) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : "auto",
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`flex items-center justify-between p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 transition-shadow ${isDragging ? 'shadow-xl ring-2 ring-brand-500/20' : ''} ${!isVisible ? 'opacity-50 grayscale' : ''}`}
+    >
+      <div className="flex items-center gap-4">
+        <div 
+          {...attributes} 
+          {...listeners} 
+          className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded cursor-grab active:cursor-grabbing text-gray-400"
+        >
+          <GripVertical className="h-5 w-5" />
+        </div>
+        <div className="flex flex-col gap-1 sm:hidden">
+          <button type="button" onClick={moveUp} disabled={index === 0} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded disabled:opacity-30">
+            <ArrowUp className="h-3 w-3" />
+          </button>
+          <button type="button" onClick={moveDown} disabled={index === totalItems - 1} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded disabled:opacity-30">
+            <ArrowDown className="h-3 w-3" />
+          </button>
+        </div>
+        <span className="font-medium text-gray-700 dark:text-gray-300">{label}</span>
+      </div>
+      {!isVisible && <span className="text-[10px] bg-gray-100 dark:bg-gray-800 text-gray-500 px-2 py-1 rounded">Inativo</span>}
+    </div>
+  );
 }
 
 export default function ProjetoPage() {
@@ -26,6 +110,13 @@ export default function ProjetoPage() {
   const [saving, setSaving] = useState(false);
   const [project, setProject] = useState<ProjectData | null>(null);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const projectId = process.env.NEXT_PUBLIC_PROJECT_ID as string;
 
@@ -36,14 +127,35 @@ export default function ProjetoPage() {
   async function fetchProject() {
     setLoading(true);
     const data = await getProject(projectId);
-    setProject(data as any);
+    if (data) {
+      setProject({
+        ...data,
+        heroVisible: !!data.heroVisible,
+        newArrivalsVisible: !!data.newArrivalsVisible,
+        countdownVisible: !!data.countdownVisible,
+        bestSellersVisible: !!data.bestSellersVisible,
+        searchVisible: data.searchVisible ?? true,
+        heroLabel: data.heroLabel || "Carrossel e Calendário",
+        newArrivalsLabel: data.newArrivalsLabel || "Agenda",
+        countdownLabel: data.countdownLabel || "Contagem Regressiva",
+        bestSellersLabel: data.bestSellersLabel || "Veja também",
+        searchLabel: data.searchLabel || "Pesquisa",
+        homeSectionOrder: data.homeSectionOrder || DEFAULT_HOME_ORDER,
+      } as any);
+    }
     setLoading(false);
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     if (!project) return;
-    const { name, value } = e.target;
-    setProject({ ...project, [name]: value } as any);
+    const { name, value, type } = e.target;
+    
+    if (type === "checkbox") {
+      const checked = (e.target as HTMLInputElement).checked;
+      setProject({ ...project, [name]: checked } as any);
+    } else {
+      setProject({ ...project, [name]: value } as any);
+    }
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: string) => {
@@ -319,6 +431,181 @@ export default function ProjetoPage() {
                   <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, "backgroundUrl")} className="hidden" />
                 </label>
               </div>
+            </div>
+          </div>
+        </section>
+  
+        <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+          <h2 className="text-lg font-semibold mb-6 flex items-center gap-2">
+            <Layout className="h-5 w-5 text-brand-500" />
+            Personalização da Home
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex items-center space-x-3 p-4 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30">
+              <input
+                type="checkbox"
+                id="heroVisible"
+                name="heroVisible"
+                checked={project.heroVisible}
+                onChange={handleInputChange}
+                className="w-5 h-5 rounded border-gray-300 text-brand-500 focus:ring-brand-500"
+              />
+              <label htmlFor="heroVisible" className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
+                Exibir Carrossel e Calendário
+              </label>
+              <input
+                type="text"
+                name="heroLabel"
+                value={project.heroLabel || ""}
+                onChange={handleInputChange}
+                className="flex-1 ml-4 px-3 py-1 text-sm bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded-lg focus:ring-brand-500 focus:border-brand-500"
+                placeholder="Nome da seção"
+              />
+            </div>
+            <div className="flex items-center space-x-3 p-4 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30">
+              <input
+                type="checkbox"
+                id="newArrivalsVisible"
+                name="newArrivalsVisible"
+                checked={project.newArrivalsVisible}
+                onChange={handleInputChange}
+                className="w-5 h-5 rounded border-gray-300 text-brand-500 focus:ring-brand-500"
+              />
+              <label htmlFor="newArrivalsVisible" className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
+                Exibir Agenda
+              </label>
+              <input
+                type="text"
+                name="newArrivalsLabel"
+                value={project.newArrivalsLabel || ""}
+                onChange={handleInputChange}
+                className="flex-1 ml-4 px-3 py-1 text-sm bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded-lg focus:ring-brand-500 focus:border-brand-500"
+                placeholder="Nome da seção"
+              />
+            </div>
+            <div className="flex items-center space-x-3 p-4 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30">
+              <input
+                type="checkbox"
+                id="countdownVisible"
+                name="countdownVisible"
+                checked={project.countdownVisible}
+                onChange={handleInputChange}
+                className="w-5 h-5 rounded border-gray-300 text-brand-500 focus:ring-brand-500"
+              />
+              <label htmlFor="countdownVisible" className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
+                Exibir Contagem Regressiva
+              </label>
+              <input
+                type="text"
+                name="countdownLabel"
+                value={project.countdownLabel || ""}
+                onChange={handleInputChange}
+                className="flex-1 ml-4 px-3 py-1 text-sm bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded-lg focus:ring-brand-500 focus:border-brand-500"
+                placeholder="Nome da seção"
+              />
+            </div>
+            <div className="flex items-center space-x-3 p-4 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30">
+              <input
+                type="checkbox"
+                id="bestSellersVisible"
+                name="bestSellersVisible"
+                checked={project.bestSellersVisible}
+                onChange={handleInputChange}
+                className="w-5 h-5 rounded border-gray-300 text-brand-500 focus:ring-brand-500"
+              />
+              <label htmlFor="bestSellersVisible" className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
+                Exibir Veja também
+              </label>
+              <input
+                type="text"
+                name="bestSellersLabel"
+                value={project.bestSellersLabel || ""}
+                onChange={handleInputChange}
+                className="flex-1 ml-4 px-3 py-1 text-sm bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded-lg focus:ring-brand-500 focus:border-brand-500"
+                placeholder="Nome da seção"
+              />
+            </div>
+            <div className="flex items-center space-x-3 p-4 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30">
+              <input
+                type="checkbox"
+                id="searchVisible"
+                name="searchVisible"
+                checked={project.searchVisible}
+                onChange={handleInputChange}
+                className="w-5 h-5 rounded border-gray-300 text-brand-500 focus:ring-brand-500"
+              />
+              <label htmlFor="searchVisible" className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
+                Exibir Pesquisa
+              </label>
+              <input
+                type="text"
+                name="searchLabel"
+                value={project.searchLabel || ""}
+                onChange={handleInputChange}
+                className="flex-1 ml-4 px-3 py-1 text-sm bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded-lg focus:ring-brand-500 focus:border-brand-500"
+                placeholder="Nome da seção"
+              />
+            </div>
+          </div>
+
+          <div className="mt-8 pt-8 border-t border-gray-100 dark:border-gray-800">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">Ordenação das Seções</h3>
+            <p className="text-xs text-gray-500 mb-6">Mova as seções para alterar a ordem em que aparecem na home do site.</p>
+            
+            <div className="space-y-3">
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={(event: DragEndEvent) => {
+                  const { active, over } = event;
+                  if (active.id !== over?.id) {
+                    const oldIndex = project.homeSectionOrder.indexOf(active.id);
+                    const newIndex = project.homeSectionOrder.indexOf(over?.id);
+                    setProject({
+                      ...project,
+                      homeSectionOrder: arrayMove(project.homeSectionOrder, oldIndex, newIndex)
+                    });
+                  }
+                }}
+                modifiers={[restrictToVerticalAxis]}
+              >
+                <SortableContext
+                  items={project.homeSectionOrder || DEFAULT_HOME_ORDER}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {(project.homeSectionOrder || DEFAULT_HOME_ORDER).map((sectionId: string, index: number) => {
+                    const label = (project as any)[`${sectionId}Label`] || SECTION_LABELS[sectionId] || sectionId;
+                    const isVisible = (project as any)[`${sectionId}Visible`] !== false;
+                    
+                    const moveUp = () => {
+                      if (index === 0) return;
+                      const newOrder = [...project.homeSectionOrder];
+                      [newOrder[index - 1], newOrder[index]] = [newOrder[index], newOrder[index - 1]];
+                      setProject({ ...project, homeSectionOrder: newOrder });
+                    };
+                    
+                    const moveDown = () => {
+                      if (index === project.homeSectionOrder.length - 1) return;
+                      const newOrder = [...project.homeSectionOrder];
+                      [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
+                      setProject({ ...project, homeSectionOrder: newOrder });
+                    };
+
+                    return (
+                      <SortableItem
+                        key={sectionId}
+                        id={sectionId}
+                        label={label}
+                        isVisible={isVisible}
+                        index={index}
+                        totalItems={project.homeSectionOrder.length}
+                        moveUp={moveUp}
+                        moveDown={moveDown}
+                      />
+                    );
+                  })}
+                </SortableContext>
+              </DndContext>
             </div>
           </div>
         </section>

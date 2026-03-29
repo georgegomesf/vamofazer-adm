@@ -57,6 +57,17 @@ model Project {
   createdAt         DateTime       @default(now())
   updatedAt         DateTime
   defaultEntryRole  String         @default("visitor")
+  heroVisible       Boolean        @default(true)
+  newArrivalsVisible Boolean        @default(true)
+  countdownVisible   Boolean        @default(true)
+  bestSellersVisible Boolean        @default(true)
+  searchVisible      Boolean        @default(true)
+  heroLabel          String         @default("Carrossel e Calendário")
+  newArrivalsLabel   String         @default("Agenda")
+  countdownLabel     String         @default("Contagem Regressiva")
+  bestSellersLabel   String         @default("Veja também")
+  searchLabel        String         @default("Pesquisa")
+  homeSectionOrder   Json?
   Action            Action[]
   Activity          Activity[]
   AnpofEvent        AnpofEvent[]
