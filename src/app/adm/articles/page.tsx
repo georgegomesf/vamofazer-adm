@@ -91,6 +91,7 @@ export default function ArticlesPage() {
                 <th className="px-6 py-4 font-medium min-w-[240px]">Artigo</th>
                 <th className="px-6 py-4 font-medium">Autores</th>
                 <th className="px-6 py-4 font-medium">Edição / Revista</th>
+                <th className="px-6 py-4 font-medium">Data</th>
                 <th className="px-6 py-4 font-medium text-right w-20">Ações</th>
               </tr>
             </thead>
@@ -130,6 +131,11 @@ export default function ArticlesPage() {
                         <span className="text-[10px] text-gray-500 truncate" title={article.issue?.journal?.title}>
                           {article.issue?.journal?.title}
                         </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-gray-500 whitespace-nowrap">
+                      <div className="text-xs">
+                        {article.datePublished ? new Date(article.datePublished).toLocaleDateString("pt-BR", { timeZone: 'UTC' }) : "-"}
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right">

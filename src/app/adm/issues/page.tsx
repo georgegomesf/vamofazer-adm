@@ -134,7 +134,7 @@ export default function IssuesPage() {
                     <td className="px-6 py-4 text-gray-500 whitespace-nowrap">
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4" />
-                        {issue.datePublished ? new Date(issue.datePublished).toLocaleDateString("pt-BR") : "-"}
+                        {issue.datePublished ? new Date(issue.datePublished).toLocaleDateString("pt-BR", { timeZone: 'UTC' }) : "-"}
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right">
