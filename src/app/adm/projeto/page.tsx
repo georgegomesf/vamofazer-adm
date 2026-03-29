@@ -135,11 +135,11 @@ export default function ProjetoPage() {
         countdownVisible: !!data.countdownVisible,
         bestSellersVisible: !!data.bestSellersVisible,
         searchVisible: data.searchVisible ?? true,
-        heroLabel: data.heroLabel || "Carrossel e Calendário",
-        newArrivalsLabel: data.newArrivalsLabel || "Agenda",
-        countdownLabel: data.countdownLabel || "Contagem Regressiva",
-        bestSellersLabel: data.bestSellersLabel || "Veja também",
-        searchLabel: data.searchLabel || "Pesquisa",
+        heroLabel: data.heroLabel ?? "",
+        newArrivalsLabel: data.newArrivalsLabel ?? "",
+        countdownLabel: data.countdownLabel ?? "",
+        bestSellersLabel: data.bestSellersLabel ?? "",
+        searchLabel: data.searchLabel ?? "",
         homeSectionOrder: data.homeSectionOrder || DEFAULT_HOME_ORDER,
       } as any);
     }
