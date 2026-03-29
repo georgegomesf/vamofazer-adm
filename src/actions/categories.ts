@@ -22,16 +22,24 @@ export async function getCategories(projectId: string) {
   }
 }
 
-export async function createCategory(projectId: string, data: { title: string; slug: string; description?: string; imageUrl?: string; isVisible?: boolean; type?: string }) {
+export async function createCategory(projectId: string, data: any) {
   try {
+    const { 
+      title, slug, description, imageUrl, isVisible, type, 
+      viewType, dominantType, dateFormat 
+    } = data;
+
     const category = await prisma.category.create({
       data: {
-        title: data.title,
-        slug: data.slug,
-        description: data.description,
-        imageUrl: data.imageUrl,
-        isVisible: data.isVisible ?? true,
-        type: data.type ?? "Postagens",
+        title,
+        slug,
+        description,
+        imageUrl,
+        isVisible: isVisible ?? true,
+        type: type ?? "Postagens",
+        viewType: viewType ?? "grid",
+        dominantType: dominantType ?? "DEFAULT",
+        dateFormat: dateFormat ?? "DEFAULT",
         projectId,
       },
     });
@@ -43,17 +51,25 @@ export async function createCategory(projectId: string, data: { title: string; s
   }
 }
 
-export async function updateCategory(id: string, data: { title: string; slug: string; description?: string; imageUrl?: string; isVisible?: boolean; type?: string }) {
+export async function updateCategory(id: string, data: any) {
   try {
+    const { 
+      title, slug, description, imageUrl, isVisible, type, 
+      viewType, dominantType, dateFormat 
+    } = data;
+
     const category = await prisma.category.update({
       where: { id },
       data: {
-        title: data.title,
-        slug: data.slug,
-        description: data.description,
-        imageUrl: data.imageUrl,
-        isVisible: data.isVisible,
-        type: data.type,
+        title,
+        slug,
+        description,
+        imageUrl,
+        isVisible,
+        type,
+        viewType,
+        dominantType,
+        dateFormat
       },
     });
     revalidatePath("/adm/categories");

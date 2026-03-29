@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { X, Save, Loader2, Menu as MenuIcon, Link as LinkIcon, Layers, FileText } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import Button from "@/components/ui/button/Button";
-import { createMenuItem, updateMenuItem } from "@/actions/menu";
+import { createMenuItem, updateMenuItem, getMenuItems } from "@/actions/menu";
 import { getCategories } from "@/actions/categories";
 import { getPosts } from "@/actions/posts";
 
@@ -20,6 +20,7 @@ export default function MenuItemModal({ isOpen, onClose, onSuccess, item, parent
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
   const [posts, setPosts] = useState<any[]>([]);
+  const [sections, setSections] = useState<any[]>([]);
   
   const [formData, setFormData] = useState({
     title: "",
@@ -28,6 +29,7 @@ export default function MenuItemModal({ isOpen, onClose, onSuccess, item, parent
     type: "item",
     categoryId: null as string | null,
     postId: null as string | null,
+    parentId: null as string | null,
     linkType: "url" as "url" | "category" | "post" | "section",
   });
 
@@ -49,6 +51,7 @@ export default function MenuItemModal({ isOpen, onClose, onSuccess, item, parent
         type: item.type || "item",
         categoryId: item.categoryId || null,
         postId: item.postId || null,
+        parentId: item.parentId || null,
         linkType,
       });
     } else {
@@ -59,18 +62,21 @@ export default function MenuItemModal({ isOpen, onClose, onSuccess, item, parent
         type: parentId ? "subitem" : "item",
         categoryId: null,
         postId: null,
+        parentId: parentId || null,
         linkType: "url",
       });
     }
   }, [item, parentId, isOpen]);
 
   async function fetchData() {
-    const [cats, pts] = await Promise.all([
+    const [cats, pts, allItems] = await Promise.all([
       getCategories(projectId),
-      getPosts(projectId)
+      getPosts(projectId),
+      getMenuItems(projectId)
     ]);
     setCategories(cats);
     setPosts(pts);
+    setSections(allItems.filter((i: any) => i.type === "section" && i.id !== item?.id));
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -95,12 +101,21 @@ export default function MenuItemModal({ isOpen, onClose, onSuccess, item, parent
     e.preventDefault();
     setLoading(true);
 
+    let finalType = formData.type;
+    if (formData.linkType === "section") {
+      finalType = "section";
+    } else if (formData.parentId) {
+      finalType = "subitem";
+    } else {
+      finalType = "item";
+    }
+
     const submissionData = {
       title: formData.title,
       url: formData.linkType === "url" ? formData.url : null,
       order: formData.order,
-      type: formData.linkType === "section" ? "section" : formData.type,
-      parentId: parentId || null,
+      type: finalType,
+      parentId: formData.parentId || null,
       categoryId: formData.linkType === "category" ? formData.categoryId : null,
       postId: formData.linkType === "post" ? formData.postId : null,
     };
@@ -229,6 +244,24 @@ export default function MenuItemModal({ isOpen, onClose, onSuccess, item, parent
             Este item funcionará apenas como um agrupador (Pai) no menu, sem link próprio.
           </div>
         )}
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Pertence à Seção (Opcional)</label>
+          <select
+            name="parentId"
+            value={formData.parentId || ""}
+            onChange={handleInputChange}
+            className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none transition-all dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+          >
+            <option value="">Raiz (Topo do Menu)</option>
+            {sections.map((sec) => (
+              <option key={sec.id} value={sec.id}>{sec.title}</option>
+            ))}
+          </select>
+          <p className="text-[10px] text-gray-400 px-1 italic">
+            Transforme este item em subitem de uma seção existente.
+          </p>
+        </div>
 
         <div className="space-y-2">
           <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Ordem</label>

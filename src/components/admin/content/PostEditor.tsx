@@ -100,14 +100,14 @@ export default function PostEditor({ post, projectId }: PostEditorProps) {
       const importImageUrl = searchParams.get("imageUrl") || "";
       const importSourceUrl = searchParams.get("sourceUrl");
       const importEmbedUrl = searchParams.get("embedUrl");
-      
+
       const libImportType = searchParams.get("importType");
       const libImportId = searchParams.get("importId");
 
       const handleImport = async () => {
         if (hasImported.current) return;
         hasImported.current = true;
-        
+
         if (libImportType && libImportId) {
           setLoading(true);
           try {
@@ -168,7 +168,7 @@ export default function PostEditor({ post, projectId }: PostEditorProps) {
                 const num = data.issue?.number ? `n. ${data.issue.number}` : "";
                 const pages = data.pages ? `p. ${data.pages}` : "";
                 const year = data.issue?.year || "";
-                
+
                 const abntRef = [journalTitle, vol, num, pages, year].filter(Boolean).join(", ") + ".";
                 const sourceLink = data.url || (data.doi ? `https://doi.org/${data.doi}` : null);
 
@@ -182,7 +182,7 @@ export default function PostEditor({ post, projectId }: PostEditorProps) {
                 }
                 content += data.abstract || "";
                 if (abntRef) {
-                  content += `\n\n**Referência:** ${abntRef}`;
+                  content += `\n\n**Publicado em:** ${abntRef}`;
                 }
                 if (sourceLink) {
                   content += `\n\nFonte: [${sourceLink}](${sourceLink})`;
@@ -477,7 +477,7 @@ export default function PostEditor({ post, projectId }: PostEditorProps) {
 
                 const targetDate = formData.publishedAt || nowStr;
                 setFormData(prev => ({ ...prev, publishedAt: targetDate }));
-                
+
                 // Wait a tick for state to update before submit
                 setTimeout(() => {
                   const fakeEvent = { preventDefault: () => { } } as React.FormEvent;

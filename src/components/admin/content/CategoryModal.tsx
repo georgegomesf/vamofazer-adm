@@ -23,6 +23,9 @@ export default function CategoryModal({ isOpen, onClose, onSuccess, category }: 
     imageUrl: "",
     isVisible: true,
     type: "Postagens",
+    viewType: "grid",
+    dominantType: "DEFAULT",
+    dateFormat: "DEFAULT",
   });
 
   const projectId = process.env.NEXT_PUBLIC_PROJECT_ID as string;
@@ -36,6 +39,9 @@ export default function CategoryModal({ isOpen, onClose, onSuccess, category }: 
         imageUrl: category.imageUrl || "",
         isVisible: category.isVisible !== false,
         type: category.type || "Postagens",
+        viewType: category.viewType || "grid",
+        dominantType: category.dominantType || "DEFAULT",
+        dateFormat: category.dateFormat || "DEFAULT",
       });
     } else {
       setFormData({
@@ -45,6 +51,9 @@ export default function CategoryModal({ isOpen, onClose, onSuccess, category }: 
         imageUrl: "",
         isVisible: true,
         type: "Postagens",
+        viewType: "grid",
+        dominantType: "DEFAULT",
+        dateFormat: "DEFAULT",
       });
     }
   }, [category, isOpen]);
@@ -163,31 +172,52 @@ export default function CategoryModal({ isOpen, onClose, onSuccess, category }: 
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Tipo de Conteúdo</label>
-          <div className="flex gap-4">
-            <label className="flex items-center gap-2 cursor-pointer group">
-              <input
-                type="radio"
-                name="type"
-                value="Postagens"
-                checked={formData.type === "Postagens"}
-                onChange={() => setFormData(prev => ({ ...prev, type: "Postagens" }))}
-                className="h-4 w-4 text-brand-500 focus:ring-brand-500 border-gray-300"
-              />
-              <span className="text-sm text-gray-700 dark:text-gray-300 group-hover:text-brand-500 transition-colors">Postagens</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer group">
-              <input
-                type="radio"
-                name="type"
-                value="Eventos"
-                checked={formData.type === "Eventos"}
-                onChange={() => setFormData(prev => ({ ...prev, type: "Eventos" }))}
-                className="h-4 w-4 text-brand-500 focus:ring-brand-500 border-gray-300"
-              />
-              <span className="text-sm text-gray-700 dark:text-gray-300 group-hover:text-brand-500 transition-colors">Eventos</span>
-            </label>
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Layout de Exibição</label>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setFormData(p => ({ ...p, viewType: "grid" }))}
+              className={`px-4 py-2 text-sm rounded-xl border transition-all ${formData.viewType === "grid" ? "bg-brand-50 border-brand-500 text-brand-600 font-bold" : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"}`}
+            >
+              Grid / Grade
+            </button>
+            <button
+              type="button"
+              onClick={() => setFormData(p => ({ ...p, viewType: "list" }))}
+              className={`px-4 py-2 text-sm rounded-xl border transition-all ${formData.viewType === "list" ? "bg-brand-50 border-brand-500 text-brand-600 font-bold" : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"}`}
+            >
+              List / Lista
+            </button>
           </div>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Especialização da Busca</label>
+          <select
+            name="dominantType"
+            value={formData.dominantType}
+            onChange={(e) => setFormData(p => ({ ...p, dominantType: e.target.value }))}
+            className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none transition-all dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+          >
+            <option value="DEFAULT">Busca Padrão (Título e Resumo)</option>
+            <option value="ACTIONS">Ações (Eventos, Datas, Organizador)</option>
+            <option value="LIBRARY">Biblioteca (Autores, Ano, Palavras-chave)</option>
+          </select>
+          <p className="text-[10px] text-gray-400 px-1">Isso orienta os filtros avançados na visualização da categoria.</p>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Formato da Data</label>
+          <select
+            name="dateFormat"
+            value={formData.dateFormat}
+            onChange={(e) => setFormData(p => ({ ...p, dateFormat: e.target.value }))}
+            className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none transition-all dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+          >
+            <option value="DEFAULT">Padrão (dd/mm/aaaa)</option>
+            <option value="HUMANIZED">Humanizado (d de Mês de YYYY)</option>
+            <option value="YEAR">Somente Ano (YYYY)</option>
+          </select>
         </div>
 
         <div className="space-y-2">

@@ -199,8 +199,11 @@ model Category {
   imageUrl    String?
   projectId   String
   createdAt   DateTime       @default(now())
-  isVisible   Boolean        @default(true)
-  type        String?        @default("Postagens")
+  isVisible     Boolean        @default(true)
+  type          String?        @default("Postagens")
+  viewType      String         @default("grid")
+  dominantType  String         @default("DEFAULT")
+  dateFormat    String         @default("DEFAULT")
   project     Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
   menuItems   MenuItem[]
   posts       PostCategory[]

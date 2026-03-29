@@ -17,12 +17,14 @@ export async function GET(request: Request) {
 
     // Fetch category info to check type
     let categoryType = "Postagens";
+    let dominantType = "DEFAULT";
     if (categorySlug) {
       const cat = await prisma.category.findUnique({
         where: { slug: categorySlug },
-        select: { type: true }
+        select: { type: true, dominantType: true }
       });
       if (cat?.type) categoryType = cat.type;
+      if (cat?.dominantType) dominantType = cat.dominantType;
     }
 
     let isPreview = searchParams.get("preview") === "true";
@@ -53,6 +55,32 @@ export async function GET(request: Request) {
           { title: { contains: search, mode: 'insensitive' } },
           { summary: { contains: search, mode: 'insensitive' } },
           { content: { contains: search, mode: 'insensitive' } },
+          { authorName: { contains: search, mode: 'insensitive' } },
+          ...(dominantType === "LIBRARY" ? [
+            { postArticles: { some: { article: { 
+              OR: [
+                { title: { contains: search, mode: 'insensitive' } },
+                { abstract: { contains: search, mode: 'insensitive' } },
+                { authors: { contains: search, mode: 'insensitive' } },
+                { keywords: { contains: search, mode: 'insensitive' } },
+              ]
+            } } } },
+            { postIssues: { some: { issue: { 
+              title: { contains: search, mode: 'insensitive' }
+            } } } },
+            { postJournals: { some: { journal: { 
+              title: { contains: search, mode: 'insensitive' }
+            } } } },
+          ] : []),
+          ...(dominantType === "ACTIONS" ? [
+            { actions: { some: { action: {
+              OR: [
+                { title: { contains: search, mode: 'insensitive' } },
+                { description: { contains: search, mode: 'insensitive' } },
+                { organizer: { contains: search, mode: 'insensitive' } },
+              ]
+            } } } }
+          ] : [])
         ]
       } : {}),
       ...(categorySlug ? {
