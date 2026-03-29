@@ -75,7 +75,7 @@ export default function MenuItemModal({ isOpen, onClose, onSuccess, item, parent
       getMenuItems(projectId)
     ]);
     setCategories(cats);
-    setPosts(pts);
+    setPosts(pts.posts || []);
     setSections(allItems.filter((i: any) => i.type === "section" && i.id !== item?.id));
   }
 

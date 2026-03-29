@@ -6,24 +6,57 @@ import { revalidatePath } from "next/cache";
 import { createActivity } from "./activities";
 import { auth } from "@/auth";
 
-export async function getPosts(projectId: string) {
+export async function getPosts(projectId: string, options: { page?: number; pageSize?: number; search?: string; status?: string; categoryId?: string } = {}) {
+  const { page = 1, pageSize = 10, search = "", status = "all", categoryId = "all" } = options;
+  const skip = (page - 1) * pageSize;
+  const take = pageSize;
+
   try {
-    const posts = await prisma.post.findMany({
-      where: { projectId },
-      include: {
-        categories: {
-          include: { category: true },
+    const where: any = { projectId };
+
+    if (search) {
+      where.OR = [
+        { title: { contains: search, mode: "insensitive" } },
+        { slug: { contains: search, mode: "insensitive" } },
+      ];
+    }
+
+    if (status === "published") {
+      where.publishedAt = { not: null };
+    } else if (status === "draft") {
+      where.publishedAt = null;
+    }
+
+    if (categoryId && categoryId !== "all") {
+      where.categories = {
+        some: {
+          categoryId: categoryId
+        }
+      };
+    }
+
+    const [posts, total] = await Promise.all([
+      prisma.post.findMany({
+        where,
+        include: {
+          categories: {
+            include: { category: true },
+          },
+          tags: {
+            include: { tag: true },
+          },
         },
-        tags: {
-          include: { tag: true },
-        },
-      },
-      orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
-    });
-    return posts;
+        orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
+        skip,
+        take,
+      }),
+      prisma.post.count({ where }),
+    ]);
+
+    return { posts, total };
   } catch (error) {
     console.error("Error fetching posts:", error);
-    return [];
+    return { posts: [], total: 0 };
   }
 }
 

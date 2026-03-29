@@ -1,0 +1,1 @@
+const { PrismaClient } = require('@prisma/client'); const prisma = new PrismaClient(); async function test() { try { const project = await prisma.project.findFirst(); console.log('Project found:', project?.name); } catch (e) { console.error('Connection error:', e.message); } finally { await prisma.$disconnect(); } } test();

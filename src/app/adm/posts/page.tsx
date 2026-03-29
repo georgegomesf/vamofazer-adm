@@ -5,13 +5,17 @@ import Link from "next/link";
 import { Plus, Search, FileText, Calendar, Edit, Trash2, Loader2, Filter, ExternalLink } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import { getPosts, deletePost } from "@/actions/posts";
+import { getCategories } from "@/actions/categories";
 import DeleteModal from "@/components/admin/content/DeleteModal";
 import Pagination from "@/components/ui/pagination/Pagination";
 
 export default function PostsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [categories, setCategories] = useState<any[]>([]);
   const [posts, setPosts] = useState<any[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -23,12 +27,27 @@ export default function PostsPage() {
 
   useEffect(() => {
     fetchPosts();
-  }, []);
+  }, [currentPage, search, statusFilter, categoryFilter]);
+
+  useEffect(() => {
+    async function loadCategories() {
+      const data = await getCategories(projectId);
+      setCategories(data);
+    }
+    loadCategories();
+  }, [projectId]);
 
   async function fetchPosts() {
     setLoading(true);
-    const data = await getPosts(projectId);
-    setPosts(data);
+    const result = await getPosts(projectId, {
+      page: currentPage,
+      pageSize: itemsPerPage,
+      search: search,
+      status: statusFilter,
+      categoryId: categoryFilter
+    });
+    setPosts(result.posts);
+    setTotal(result.total);
     setLoading(false);
   }
 
@@ -41,26 +60,12 @@ export default function PostsPage() {
     setDeleteId(null);
   }
 
-  const filteredPosts = posts.filter(p => {
-    const matchesSearch = p.title.toLowerCase().includes(search.toLowerCase()) ||
-                          p.slug.toLowerCase().includes(search.toLowerCase());
-                          
-    let matchesStatus = true;
-    if (statusFilter === "published") matchesStatus = !!p.publishedAt;
-    if (statusFilter === "draft") matchesStatus = !p.publishedAt;
-    
-    return matchesSearch && matchesStatus;
-  });
-
-  const paginatedPosts = filteredPosts.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
   // Reset page when filtering
   useEffect(() => {
-    setCurrentPage(1);
-  }, [search, statusFilter]);
+    if (currentPage !== 1) {
+      setCurrentPage(1);
+    }
+  }, [search, statusFilter, categoryFilter]);
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 pb-12">
@@ -100,6 +105,19 @@ export default function PostsPage() {
               <option value="published">Publicados</option>
               <option value="draft">Rascunhos</option>
             </select>
+
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="w-full sm:w-auto px-4 py-2 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none transition-all dark:bg-gray-800/50 dark:border-gray-700 dark:text-white text-sm"
+            >
+              <option value="all">Todas as Categorias</option>
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.title}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
@@ -122,7 +140,7 @@ export default function PostsPage() {
                     Carregando postagens...
                   </td>
                 </tr>
-              ) : paginatedPosts.map((post) => (
+              ) : posts.map((post) => (
                 <tr key={post.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
@@ -204,21 +222,21 @@ export default function PostsPage() {
               ))}
             </tbody>
           </table>
-          {!loading && filteredPosts.length === 0 && (
+          {!loading && posts.length === 0 && (
             <div className="py-12 text-center text-gray-500 dark:text-gray-400">
               Nenhuma postagem encontrada.
             </div>
           )}
         </div>
 
-        {!loading && filteredPosts.length > 0 && (
-          <Pagination
-            currentPage={currentPage}
-            totalItems={filteredPosts.length}
-            itemsPerPage={itemsPerPage}
-            onPageChange={setCurrentPage}
-          />
-        )}
+          {!loading && total > 0 && (
+            <Pagination
+              currentPage={currentPage}
+              totalItems={total}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setCurrentPage}
+            />
+          )}
       </div>
 
       <DeleteModal
