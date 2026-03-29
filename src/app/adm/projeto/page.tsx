@@ -47,6 +47,7 @@ interface ProjectData {
   bestSellersLabel: string;
   searchLabel: string;
   homeSectionOrder: any;
+  defaultThumbUrl: string | null;
 }
 
 const DEFAULT_HOME_ORDER = ["search", "hero", "newArrivals", "countdown", "bestSellers"];
@@ -141,6 +142,7 @@ export default function ProjetoPage() {
         bestSellersLabel: data.bestSellersLabel ?? "",
         searchLabel: data.searchLabel ?? "",
         homeSectionOrder: data.homeSectionOrder || DEFAULT_HOME_ORDER,
+        defaultThumbUrl: data.defaultThumbUrl ?? null,
       } as any);
     }
     setLoading(false);
@@ -410,25 +412,28 @@ export default function ProjetoPage() {
 
             <div className="space-y-4 md:col-span-2">
               <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Background Personalizado</label>
-                {project.backgroundUrl && (
-                  <button type="button" onClick={() => removeImage("backgroundUrl")} className="text-red-500 hover:text-red-600 text-xs font-medium">Excluir</button>
+                <div>
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Thumbnail Padrão (Grid)</label>
+                  <p className="text-xs text-gray-400 mt-0.5">Exibida em cards quando a postagem não possui imagem própria.</p>
+                </div>
+                {project.defaultThumbUrl && (
+                  <button type="button" onClick={() => removeImage("defaultThumbUrl")} className="text-red-500 hover:text-red-600 text-xs font-medium">Excluir</button>
                 )}
               </div>
-              <div className="relative group aspect-[21/9] w-full overflow-hidden rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 flex items-center justify-center bg-gray-50 dark:bg-gray-800/50">
-                {project.backgroundUrl ? (
-                  <img src={project.backgroundUrl} alt="Background Preview" className="w-full h-full object-cover" />
+              <div className="relative group aspect-square max-w-[200px] overflow-hidden rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 flex items-center justify-center bg-gray-50 dark:bg-gray-800/50">
+                {project.defaultThumbUrl ? (
+                  <img src={project.defaultThumbUrl} alt="Thumbnail Padrão" className="w-full h-full object-cover" />
                 ) : (
-                  <div className="text-center">
+                  <div className="text-center p-4">
                     <ImageIcon className="h-10 w-10 text-gray-300 mx-auto mb-2" />
-                    <span className="text-xs text-gray-400">Recomendado: Imagem em alta definição</span>
+                    <span className="text-xs text-gray-400">Sem imagem padrão</span>
                   </div>
                 )}
                 <label className="absolute inset-0 cursor-pointer flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <div className="bg-white px-4 py-2 rounded-xl shadow-lg flex items-center gap-2 font-medium">
-                    <Upload className="h-4 w-4" /> Alterar Background
+                  <div className="bg-white p-2 rounded-full shadow-lg">
+                    <Upload className="h-5 w-5 text-gray-900" />
                   </div>
-                  <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, "backgroundUrl")} className="hidden" />
+                  <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, "defaultThumbUrl")} className="hidden" />
                 </label>
               </div>
             </div>

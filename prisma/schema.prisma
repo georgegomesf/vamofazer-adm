@@ -68,6 +68,7 @@ model Project {
   bestSellersLabel   String         @default("Veja também")
   searchLabel        String         @default("Pesquisa")
   homeSectionOrder   Json?
+  defaultThumbUrl    String?
   Action            Action[]
   Activity          Activity[]
   AnpofEvent        AnpofEvent[]

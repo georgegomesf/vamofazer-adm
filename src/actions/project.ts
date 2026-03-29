@@ -26,7 +26,7 @@ export async function updateProject(id: string, data: any) {
     if (!currentProject) throw new Error("Project not found");
 
     // 2. Check for replaced images
-    const imageFields = ['logoUrl', 'logoHorizontalUrl', 'coverUrl', 'backgroundUrl'];
+    const imageFields = ['logoUrl', 'logoHorizontalUrl', 'coverUrl', 'backgroundUrl', 'defaultThumbUrl'];
     for (const field of imageFields) {
       if (data[field] !== undefined && data[field] !== currentProject[field as keyof typeof currentProject]) {
         const oldUrl = currentProject[field as keyof typeof currentProject] as string;
@@ -48,6 +48,7 @@ export async function updateProject(id: string, data: any) {
         logoHorizontalUrl: data.logoHorizontalUrl,
         coverUrl: data.coverUrl,
         backgroundUrl: data.backgroundUrl,
+        defaultThumbUrl: data.defaultThumbUrl,
         defaultEntryRole: data.defaultEntryRole,
         heroVisible: data.heroVisible,
         newArrivalsVisible: data.newArrivalsVisible,
