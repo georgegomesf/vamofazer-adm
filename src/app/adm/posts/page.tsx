@@ -136,6 +136,9 @@ export default function PostsPage() {
                       <div className="max-w-[160px] md:max-w-xs lg:max-w-sm">
                         <div className="font-medium text-gray-900 dark:text-white truncate" title={post.title}>{post.title}</div>
                         <div className="text-sm text-gray-500 truncate font-mono text-[10px]" title={post.slug}>{post.slug}</div>
+                        {post.authorName && (
+                          <div className="text-[10px] text-brand-600 dark:text-brand-400 font-bold truncate">Por {post.authorName}</div>
+                        )}
                       </div>
                     </div>
                   </td>

@@ -67,11 +67,20 @@ export async function createPost(projectId: string, data: any) {
   try {
     const session = await auth();
     const userId = (session?.user as any)?.id;
-    const { tagIds, categoryIds, attachmentIds, actionIds, journalIds, issueIds, articleIds, ...postData } = data;
+    const { 
+      title, slug, summary, content, imageUrl, publishedAt, authorName,
+      tagIds, categoryIds, attachmentIds, actionIds, journalIds, issueIds, articleIds 
+    } = data;
 
     const post = await prisma.post.create({
       data: {
-        ...postData,
+        title,
+        slug,
+        summary,
+        content,
+        imageUrl,
+        publishedAt,
+        authorName,
         projectId,
         createdBy: userId,
         categories: {
@@ -226,7 +235,10 @@ export async function updatePost(id: string, data: any) {
   try {
     const session = await auth();
     const userId = (session?.user as any)?.id;
-    const { tagIds, categoryIds, attachmentIds, actionIds, journalIds, issueIds, articleIds, ...postData } = data;
+    const { 
+      title, slug, summary, content, imageUrl, publishedAt, authorName,
+      tagIds, categoryIds, attachmentIds, actionIds, journalIds, issueIds, articleIds 
+    } = data;
 
     // Snapshot current state BEFORE deleting relations (to compute diffs)
     const previousPost = await prisma.post.findUnique({
@@ -260,7 +272,13 @@ export async function updatePost(id: string, data: any) {
     const post = await prisma.post.update({
       where: { id },
       data: {
-        ...postData,
+        title,
+        slug,
+        summary,
+        content,
+        imageUrl,
+        publishedAt,
+        authorName,
         updatedBy: userId,
         categories: {
           create: categoryIds?.map((categoryId: string) => ({

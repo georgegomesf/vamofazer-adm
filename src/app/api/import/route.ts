@@ -92,7 +92,31 @@ function cleanImageUrl(url: string): string {
   const siteName = decodeHTMLEntities(getMeta("og:site_name") || "");
   const videoUrl = getMeta("og:video") || getMeta("og:video:url") || "";
 
-  return { title, description, image, siteName, videoUrl, url };
+  // Extract author(s) - OJS often uses multiple citation_author tags
+  const authorPatterns = [
+    /<meta[^>]+name=["']citation_author["'][^>]+content=["']([^"']*?)["']/gi,
+    /<meta[^>]+name=["']author["'][^>]+content=["']([^"']*?)["']/gi,
+  ];
+  
+  const authors: string[] = [];
+  for (const p of authorPatterns) {
+    let match;
+    while ((match = p.exec(html)) !== null) {
+      if (match[1]) authors.push(decodeHTMLEntities(match[1].trim()));
+    }
+    if (authors.length > 0) break;
+  }
+  
+  const author = authors.join(", ");
+
+  // Extract date
+  const publishedAt = 
+    getMeta("citation_date") || 
+    getMeta("article:published_time") || 
+    getMeta("published_at") || 
+    "";
+
+  return { title, description, image, siteName, videoUrl, url, author, publishedAt };
 }
 
 /**

@@ -54,6 +54,7 @@ export default function PostEditor({ post, projectId }: PostEditorProps) {
     issueIds: [] as string[],
     articleIds: [] as string[],
     publishedAt: null as string | null,
+    authorName: "",
   });
 
   const hasImported = React.useRef(false);
@@ -90,6 +91,7 @@ export default function PostEditor({ post, projectId }: PostEditorProps) {
         issueIds: post.postIssues?.filter((pi: any) => pi.issue).map((pi: any) => pi.issueId) || [],
         articleIds: post.postArticles?.filter((pa: any) => pa.article).map((pa: any) => pa.articleId) || [],
         publishedAt: formatToLocalDatetime(post.publishedAt) || null,
+        authorName: post.authorName || "",
       });
     } else {
       // Check for URL-based import (from Bookmarklet or Library)
@@ -161,7 +163,6 @@ export default function PostEditor({ post, projectId }: PostEditorProps) {
                   .replace(/[^\w\s-]/g, "")
                   .replace(/\s+/g, "-");
 
-                // ABNT Reference: Título da Revista, v. X, n. Y, p. Z-Z, ano.
                 const journalTitle = data.issue?.journal?.title || "";
                 const vol = data.issue?.volume ? `v. ${data.issue.volume}` : "";
                 const num = data.issue?.number ? `n. ${data.issue.number}` : "";
@@ -169,18 +170,34 @@ export default function PostEditor({ post, projectId }: PostEditorProps) {
                 const year = data.issue?.year || "";
                 
                 const abntRef = [journalTitle, vol, num, pages, year].filter(Boolean).join(", ") + ".";
-
                 const sourceLink = data.url || (data.doi ? `https://doi.org/${data.doi}` : null);
+
+                // Summary: First 200 characters of abstract
+                const summary = data.abstract ? (data.abstract.length > 200 ? data.abstract.substring(0, 197) + "..." : data.abstract) : "";
+
+                // Build content elements
+                let content = "";
+                if (data.keywords) {
+                  content += `**Palavras-chave:** ${data.keywords}\n\n`;
+                }
+                content += data.abstract || "";
+                if (abntRef) {
+                  content += `\n\n**Referência:** ${abntRef}`;
+                }
+                if (sourceLink) {
+                  content += `\n\nFonte: [${sourceLink}](${sourceLink})`;
+                }
 
                 setFormData(prev => ({
                   ...prev,
                   title: data.title,
                   slug: generatedSlug,
-                  summary: abntRef,
-                  content: (data.abstract || "") + (sourceLink ? `\n\nFonte: [${sourceLink}](${sourceLink})` : ""),
+                  summary: summary,
+                  content: content,
                   articleIds: [data.id],
                   issueIds: [data.issueId],
                   publishedAt: formatToLocalDatetime(data.datePublished) || null,
+                  authorName: data.authors || "",
                 }));
               }
             }
@@ -191,6 +208,8 @@ export default function PostEditor({ post, projectId }: PostEditorProps) {
           }
           return;
         }
+
+        const importAuthor = searchParams.get("author") || "";
 
         if (importTitle) {
           const generatedSlug = importTitle
@@ -215,6 +234,8 @@ export default function PostEditor({ post, projectId }: PostEditorProps) {
             summary: importSummary,
             imageUrl: importImageUrl,
             content: initialContent,
+            authorName: importAuthor,
+            publishedAt: formatToLocalDatetime(searchParams.get("publishedAt")) || null,
           }));
         }
       };
@@ -529,6 +550,18 @@ export default function PostEditor({ post, projectId }: PostEditorProps) {
                     className="bg-transparent border-none outline-none focus:ring-0 p-0 text-gray-600 dark:text-gray-400 w-full"
                   />
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Autor</label>
+                <input
+                  type="text"
+                  name="authorName"
+                  value={formData.authorName}
+                  onChange={handleInputChange}
+                  placeholder="Nome do autor (opcional)"
+                  className="w-full bg-gray-50 dark:bg-gray-800/50 p-4 rounded-xl border border-transparent focus:border-brand-500 outline-none transition-all dark:text-white"
+                />
               </div>
 
               <div className="space-y-2">

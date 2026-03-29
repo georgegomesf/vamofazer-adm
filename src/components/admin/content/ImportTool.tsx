@@ -17,6 +17,7 @@ type ImportResult = {
     videoId?: string;
     embedUrl?: string;
     url: string;
+    author?: string;
   };
 };
 
@@ -58,7 +59,9 @@ export default function ImportTool() {
     if (result.data.description) params.set("summary", result.data.description);
     if (result.data.image) params.set("imageUrl", result.data.image);
     if (result.data.embedUrl) params.set("embedUrl", result.data.embedUrl);
+    if (result.data.publishedAt) params.set("publishedAt", result.data.publishedAt);
     if (result.data.tags?.length) params.set("tags", result.data.tags.join(","));
+    if (result.data.author) params.set("author", result.data.author);
     params.set("sourceUrl", result.data.url);
     return `/adm/posts/new?${params.toString()}`;
   };
@@ -224,8 +227,15 @@ export default function ImportTool() {
 
               {(result.data.channelTitle || result.data.siteName) && (
                 <div>
-                  <p className="text-xs uppercase font-semibold text-gray-400 mb-1">Canal / Site</p>
+                  <p className="text-xs uppercase font-semibold text-gray-400 mb-1">Fonte / Canal</p>
                   <p className="text-sm text-gray-700 dark:text-gray-300">{result.data.channelTitle || result.data.siteName}</p>
+                </div>
+              )}
+
+              {result.data.author && (
+                <div>
+                  <p className="text-xs uppercase font-semibold text-gray-400 mb-1">Autor</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">{result.data.author}</p>
                 </div>
               )}
 
