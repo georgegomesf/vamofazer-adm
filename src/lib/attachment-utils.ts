@@ -5,7 +5,7 @@ export function getAttachmentTypeFromUrl(url: string): string {
     const path = urlObj.pathname;
 
     if (host === 'youtube.com' || host === 'youtu.be') {
-      if (path.includes('/watch') || host === 'youtu.be' || path.startsWith('/shorts/')) {
+      if (path.includes('/watch') || host === 'youtu.be' || path.startsWith('/shorts/') || path.startsWith('/live/')) {
         return 'Vídeo do Youtube';
       }
       if (path.includes('/channel/') || path.includes('/c/') || path.startsWith('/@')) {
@@ -40,7 +40,7 @@ export function getAttachmentTypeFromUrl(url: string): string {
 
   const urlLower = url.toLowerCase();
   
-  if (urlLower.includes('youtube.com/watch') || urlLower.includes('youtu.be/') || urlLower.includes('youtube.com/shorts/')) {
+  if (urlLower.includes('youtube.com/watch') || urlLower.includes('youtu.be/') || urlLower.includes('youtube.com/shorts/') || urlLower.includes('youtube.com/live/')) {
     return 'Vídeo do Youtube';
   }
   if (urlLower.includes('youtube.com/channel/') || urlLower.includes('youtube.com/c/') || urlLower.includes('youtube.com/@')) {

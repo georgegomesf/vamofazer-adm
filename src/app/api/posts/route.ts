@@ -128,16 +128,20 @@ export async function GET(request: Request) {
 
       // Sort logic
       posts = allPosts.sort((a: any, b: any) => {
-        const eventA = a.actions.find((act: any) => act.action.type === "Evento")?.action;
-        const eventB = b.actions.find((act: any) => act.action.type === "Evento")?.action;
+        const eventA = a.actions.find((act: any) => 
+          ["Evento", "Atividade", "Prazo"].includes(act.action.type)
+        )?.action;
+        const eventB = b.actions.find((act: any) => 
+          ["Evento", "Atividade", "Prazo"].includes(act.action.type)
+        )?.action;
 
-        if (!eventA && !eventB) return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        if (!eventA && !eventB) return new Date(b.publishedAt || b.createdAt).getTime() - new Date(a.publishedAt || a.createdAt).getTime();
         if (!eventA) return 1;
         if (!eventB) return -1;
 
-        const dateA = new Date(eventA.startDate || a.createdAt);
+        const dateA = new Date(eventA.startDate || a.publishedAt || a.createdAt);
         const endA = eventA.endDate ? new Date(eventA.endDate) : dateA;
-        const dateB = new Date(eventB.startDate || b.createdAt);
+        const dateB = new Date(eventB.startDate || b.publishedAt || b.createdAt);
         const endB = eventB.endDate ? new Date(eventB.endDate) : dateB;
 
         const isPastA = endA < now;
