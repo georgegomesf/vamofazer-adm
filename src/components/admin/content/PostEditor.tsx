@@ -312,14 +312,29 @@ export default function PostEditor({ post, projectId }: PostEditorProps) {
       getArticles({ pageSize: 100 }),
       getTheses({ pageSize: 100 })
     ]);
+    
+    // Inject pre-existing relationships into the lists so badges render properly 
+    // even if the item is not inside the first 100 items returned by API
+    const existingJournals = post?.postJournals?.map((pj: any) => pj.journal).filter(Boolean) || [];
+    const allJ = [...journals, ...existingJournals].reduce((acc, curr) => { if (!acc.find(item => item.id === curr.id)) acc.push(curr); return acc; }, []);
+
+    const existingIssues = post?.postIssues?.map((pi: any) => pi.issue).filter(Boolean) || [];
+    const allIss = [...(issues.issues || []), ...existingIssues].reduce((acc, curr) => { if (!acc.find(item => item.id === curr.id)) acc.push(curr); return acc; }, []);
+
+    const existingArticles = post?.postArticles?.map((pa: any) => pa.article).filter(Boolean) || [];
+    const allArt = [...(articles.articles || []), ...existingArticles].reduce((acc, curr) => { if (!acc.find(item => item.id === curr.id)) acc.push(curr); return acc; }, []);
+
+    const existingTheses = post?.postTheses?.map((pt: any) => pt.thesis).filter(Boolean) || [];
+    const allThe = [...(theses.theses || []), ...existingTheses].reduce((acc, curr) => { if (!acc.find(item => item.id === curr.id)) acc.push(curr); return acc; }, []);
+
     setCategories(cats);
     setAllTags(tags);
     setAllAttachments(atts);
     setAllActions(acts);
-    setAllJournals(journals);
-    setAllIssues(issues.issues || []);
-    setAllArticles(articles.articles || []);
-    setAllTheses(theses.theses || []);
+    setAllJournals(allJ);
+    setAllIssues(allIss);
+    setAllArticles(allArt);
+    setAllTheses(allThe);
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
