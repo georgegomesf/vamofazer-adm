@@ -60,6 +60,7 @@ export async function updateProject(id: string, data: any) {
         countdownLabel: data.countdownLabel,
         bestSellersLabel: data.bestSellersLabel,
         searchLabel: data.searchLabel,
+        searchViewType: data.searchViewType,
         homeSectionOrder: data.homeSectionOrder,
       },
     });

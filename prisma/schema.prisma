@@ -67,6 +67,7 @@ model Project {
   countdownLabel     String         @default("Contagem Regressiva")
   bestSellersLabel   String         @default("Veja também")
   searchLabel        String         @default("Pesquisa")
+  searchViewType     String         @default("grid")
   homeSectionOrder   Json?
   defaultThumbUrl    String?
   Action            Action[]

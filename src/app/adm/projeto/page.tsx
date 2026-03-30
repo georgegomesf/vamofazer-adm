@@ -46,6 +46,7 @@ interface ProjectData {
   countdownLabel: string;
   bestSellersLabel: string;
   searchLabel: string;
+  searchViewType: string;
   homeSectionOrder: any;
   defaultThumbUrl: string | null;
 }
@@ -141,6 +142,7 @@ export default function ProjetoPage() {
         countdownLabel: data.countdownLabel ?? "",
         bestSellersLabel: data.bestSellersLabel ?? "",
         searchLabel: data.searchLabel ?? "",
+        searchViewType: data.searchViewType ?? "grid",
         homeSectionOrder: data.homeSectionOrder || DEFAULT_HOME_ORDER,
         defaultThumbUrl: data.defaultThumbUrl ?? null,
       } as any);
@@ -530,26 +532,40 @@ export default function ProjetoPage() {
                 placeholder="Nome da seção"
               />
             </div>
-            <div className="flex items-center space-x-3 p-4 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30">
-              <input
-                type="checkbox"
-                id="searchVisible"
-                name="searchVisible"
-                checked={project.searchVisible}
-                onChange={handleInputChange}
-                className="w-5 h-5 rounded border-gray-300 text-brand-500 focus:ring-brand-500"
-              />
-              <label htmlFor="searchVisible" className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
-                Exibir Pesquisa
-              </label>
-              <input
-                type="text"
-                name="searchLabel"
-                value={project.searchLabel || ""}
-                onChange={handleInputChange}
-                className="flex-1 ml-4 px-3 py-1 text-sm bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded-lg focus:ring-brand-500 focus:border-brand-500"
-                placeholder="Nome da seção"
-              />
+            <div className="flex flex-col gap-4 p-4 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30">
+              <div className="flex items-center space-x-3">
+                <input
+                  type="checkbox"
+                  id="searchVisible"
+                  name="searchVisible"
+                  checked={project.searchVisible}
+                  onChange={handleInputChange}
+                  className="w-5 h-5 rounded border-gray-300 text-brand-500 focus:ring-brand-500"
+                />
+                <label htmlFor="searchVisible" className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
+                  Exibir Pesquisa
+                </label>
+                <input
+                  type="text"
+                  name="searchLabel"
+                  value={project.searchLabel || ""}
+                  onChange={handleInputChange}
+                  className="flex-1 ml-4 px-3 py-1 text-sm bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded-lg focus:ring-brand-500 focus:border-brand-500"
+                  placeholder="Nome da seção"
+                />
+              </div>
+              <div className="flex items-center gap-3 pl-8">
+                <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Tipo de visualização dos resultados:</label>
+                <select
+                  name="searchViewType"
+                  value={project.searchViewType}
+                  onChange={handleInputChange}
+                  className="px-3 py-1 text-xs bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded-lg focus:ring-brand-500 focus:border-brand-500"
+                >
+                  <option value="grid">Grid (Cards)</option>
+                  <option value="list">Lista (Compacto)</option>
+                </select>
+              </div>
             </div>
           </div>
 
