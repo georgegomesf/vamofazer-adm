@@ -146,3 +146,52 @@ export async function deleteArticle(id: string) {
   await prisma.article.delete({ where: { id } });
   revalidatePath("/adm/articles");
 }
+
+// Theses and Dissertations
+export async function getTheses({ page = 1, pageSize = 10, search = "" } = {}) {
+  const where: any = search ? {
+    OR: [
+      { title: { contains: search, mode: "insensitive" } },
+      { authors: { contains: search, mode: "insensitive" } },
+      { university: { contains: search, mode: "insensitive" } },
+      { program: { contains: search, mode: "insensitive" } },
+    ]
+  } : {};
+
+  const [theses, total] = await Promise.all([
+    prisma.thesis.findMany({
+      where,
+      orderBy: { datePublished: "desc" },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.thesis.count({ where })
+  ]);
+
+  return { theses, total };
+}
+
+export async function getThesis(id: string) {
+  return await prisma.thesis.findUnique({
+    where: { id },
+  });
+}
+
+export async function upsertThesis(data: any) {
+  const { id, ...rest } = data;
+  if (!id) return await prisma.thesis.create({ data: rest });
+
+  const thesis = await prisma.thesis.upsert({
+    where: { id },
+    update: rest,
+    create: { id, ...rest },
+  });
+  
+  revalidatePath("/adm/theses");
+  return thesis;
+}
+
+export async function deleteThesis(id: string) {
+  await prisma.thesis.delete({ where: { id } });
+  revalidatePath("/adm/theses");
+}

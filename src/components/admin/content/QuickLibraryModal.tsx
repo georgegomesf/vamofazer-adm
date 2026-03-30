@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Search, X, Loader2, Book, Layers, FileText, Check, Plus } from "lucide-react";
-import { getJournals, getIssues, getArticles } from "@/actions/library";
+import { getJournals, getIssues, getArticles, getTheses } from "@/actions/library";
 import Button from "@/components/ui/button/Button";
 
 interface QuickLibraryModalProps {
@@ -12,6 +12,7 @@ interface QuickLibraryModalProps {
   linkedJournalIds: string[];
   linkedIssueIds: string[];
   linkedArticleIds: string[];
+  linkedThesisIds: string[];
 }
 
 export default function QuickLibraryModal({
@@ -20,9 +21,10 @@ export default function QuickLibraryModal({
   onSuccess,
   linkedJournalIds,
   linkedIssueIds,
-  linkedArticleIds
+  linkedArticleIds,
+  linkedThesisIds
 }: QuickLibraryModalProps) {
-  const [activeTab, setActiveTab] = useState<'journal' | 'issue' | 'article'>('article');
+  const [activeTab, setActiveTab] = useState<'journal' | 'issue' | 'article' | 'thesis'>('article');
   const [search, setSearch] = useState("");
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -53,9 +55,14 @@ export default function QuickLibraryModal({
         const newItems = isNewSearch ? result.issues : [...items, ...result.issues];
         setItems(newItems);
         setHasMore(newItems.length < result.total);
-      } else {
+      } else if (activeTab === 'article') {
         result = await getArticles({ page: pageNum, pageSize: 20, search });
         const newItems = isNewSearch ? result.articles : [...items, ...result.articles];
+        setItems(newItems);
+        setHasMore(newItems.length < result.total);
+      } else if (activeTab === 'thesis') {
+        result = await getTheses({ page: pageNum, pageSize: 20, search });
+        const newItems = isNewSearch ? result.theses : [...items, ...result.theses];
         setItems(newItems);
         setHasMore(newItems.length < result.total);
       }
@@ -76,6 +83,7 @@ export default function QuickLibraryModal({
     if (type === 'journal') return linkedJournalIds.includes(id);
     if (type === 'issue') return linkedIssueIds.includes(id);
     if (type === 'article') return linkedArticleIds.includes(id);
+    if (type === 'thesis') return linkedThesisIds.includes(id);
     return false;
   };
 
@@ -121,6 +129,14 @@ export default function QuickLibraryModal({
           >
             <Book className="h-4 w-4" /> Revistas
           </button>
+          <button
+            onClick={() => setActiveTab('thesis')}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-lg transition-all ${
+              activeTab === 'thesis' ? 'bg-white dark:bg-gray-700 text-brand-600 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+            }`}
+          >
+            <FileText className="h-4 w-4" /> Teses
+          </button>
         </div>
 
         {/* Search */}
@@ -129,7 +145,7 @@ export default function QuickLibraryModal({
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-brand-500 transition-colors" />
             <input
               type="text"
-              placeholder={`Pesquisar ${activeTab === 'journal' ? 'revista' : activeTab === 'issue' ? 'edição' : 'artigo'}...`}
+              placeholder={`Pesquisar ${activeTab === 'journal' ? 'revista' : activeTab === 'issue' ? 'edição' : activeTab === 'article' ? 'artigo' : 'tese'}...`}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-9 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border-none rounded-xl focus:ring-2 focus:ring-brand-500/20 outline-none dark:text-white text-sm"
@@ -156,6 +172,7 @@ export default function QuickLibraryModal({
                     {activeTab === 'journal' && <Book className="h-5 w-5 text-gray-400" />}
                     {activeTab === 'issue' && <Layers className="h-5 w-5 text-gray-400" />}
                     {activeTab === 'article' && <FileText className="h-5 w-5 text-gray-400" />}
+                    {activeTab === 'thesis' && <FileText className="h-5 w-5 text-gray-400" />}
                   </div>
                   <div className="overflow-hidden">
                     <p className="font-semibold text-gray-900 dark:text-white text-sm truncate uppercase tracking-tight">
@@ -163,6 +180,7 @@ export default function QuickLibraryModal({
                     </p>
                     <p className="text-[10px] text-gray-500 truncate flex items-center gap-2">
                        {activeTab === 'article' && <span>{item.authors || 'Sem autores'}</span>}
+                       {activeTab === 'thesis' && <span>{item.authors || 'Sem autores'} • {item.university}</span>}
                        {activeTab === 'issue' && <span>{item.journal?.title}</span>}
                        {activeTab === 'journal' && <span>{item._count?.issues || 0} edições</span>}
                     </p>

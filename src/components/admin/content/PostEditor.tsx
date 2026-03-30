@@ -13,7 +13,7 @@ import { uploadImage, deleteImage } from "@/actions/upload";
 import QuickAttachmentModal from "./QuickAttachmentModal";
 import QuickActionModal from "./QuickActionModal";
 import QuickLibraryModal from "./QuickLibraryModal";
-import { getJournals, getIssues, getArticles, getJournal, getIssue, getArticle } from "@/actions/library";
+import { getJournals, getIssues, getArticles, getJournal, getIssue, getArticle, getTheses, getThesis } from "@/actions/library";
 import { createAttachment } from "@/actions/attachments";
 
 interface PostEditorProps {
@@ -39,6 +39,7 @@ export default function PostEditor({ post, projectId }: PostEditorProps) {
   const [allJournals, setAllJournals] = useState<any[]>([]);
   const [allIssues, setAllIssues] = useState<any[]>([]);
   const [allArticles, setAllArticles] = useState<any[]>([]);
+  const [allTheses, setAllTheses] = useState<any[]>([]);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -53,6 +54,7 @@ export default function PostEditor({ post, projectId }: PostEditorProps) {
     journalIds: [] as string[],
     issueIds: [] as string[],
     articleIds: [] as string[],
+    thesisIds: [] as string[],
     publishedAt: null as string | null,
     authorName: "",
   });
@@ -90,6 +92,7 @@ export default function PostEditor({ post, projectId }: PostEditorProps) {
         journalIds: post.postJournals?.filter((pj: any) => pj.journal).map((pj: any) => pj.journalId) || [],
         issueIds: post.postIssues?.filter((pi: any) => pi.issue).map((pi: any) => pi.issueId) || [],
         articleIds: post.postArticles?.filter((pa: any) => pa.article).map((pa: any) => pa.articleId) || [],
+        thesisIds: post.postTheses?.filter((pt: any) => pt.thesis).map((pt: any) => pt.thesisId) || [],
         publishedAt: formatToLocalDatetime(post.publishedAt) || null,
         authorName: post.authorName || "",
       });
@@ -209,6 +212,51 @@ export default function PostEditor({ post, projectId }: PostEditorProps) {
                   authorName: data.authors || "",
                 }));
               }
+            } else if (libImportType === "thesis") {
+              data = await getThesis(libImportId);
+              if (data) {
+                const generatedSlug = data.title
+                  .toLowerCase()
+                  .normalize("NFD")
+                  .replace(/[\u0300-\u036f]/g, "")
+                  .replace(/[^\w\s-]/g, "")
+                  .replace(/\s+/g, "-");
+
+                let content = "";
+                if (data.keywords) {
+                  content += `**Palavras-chave:** ${data.keywords}\n\n`;
+                }
+                content += data.abstract || "";
+                
+                const refParts = [
+                  data.authors,
+                  data.advisor ? `Orientador: ${data.advisor}` : null,
+                  data.title,
+                  data.year,
+                  data.degree,
+                  data.university,
+                  data.program
+                ].filter(Boolean);
+                
+                if (refParts.length > 0) {
+                  content += `\n\n${refParts.join(". ")}.`;
+                }
+                
+                if (data.url) {
+                  content += `\n\nFonte: [${data.url}](${data.url})`;
+                }
+
+                setFormData(prev => ({
+                  ...prev,
+                  title: data.title,
+                  slug: generatedSlug,
+                  summary: data.abstract ? (data.abstract.length > 200 ? data.abstract.substring(0, 197) + "..." : data.abstract) : "",
+                  content: content,
+                  thesisIds: [data.id],
+                  publishedAt: formatToLocalDatetime(data.datePublished) || null,
+                  authorName: data.authors || "",
+                }));
+              }
             }
           } catch (error) {
             console.error("Library import failed:", error);
@@ -254,14 +302,15 @@ export default function PostEditor({ post, projectId }: PostEditorProps) {
   }, [post, searchParams]);
 
   async function fetchData() {
-    const [cats, tags, atts, acts, journals, issues, articles] = await Promise.all([
+    const [cats, tags, atts, acts, journals, issues, articles, theses] = await Promise.all([
       getCategories(projectId),
       getTags(projectId),
       getAttachments(projectId),
       getActions(projectId),
       getJournals(),
       getIssues({ pageSize: 100 }), // Fetch some to have for lookup
-      getArticles({ pageSize: 100 })
+      getArticles({ pageSize: 100 }),
+      getTheses({ pageSize: 100 })
     ]);
     setCategories(cats);
     setAllTags(tags);
@@ -270,6 +319,7 @@ export default function PostEditor({ post, projectId }: PostEditorProps) {
     setAllJournals(journals);
     setAllIssues(issues.issues || []);
     setAllArticles(articles.articles || []);
+    setAllTheses(theses.theses || []);
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -351,8 +401,8 @@ export default function PostEditor({ post, projectId }: PostEditorProps) {
     }));
   };
 
-  const handleLibraryLink = (id: string, type: 'journal' | 'issue' | 'article') => {
-    const fieldName = type === 'journal' ? 'journalIds' : type === 'issue' ? 'issueIds' : 'articleIds';
+  const handleLibraryLink = (id: string, type: 'journal' | 'issue' | 'article' | 'thesis') => {
+    const fieldName = type === 'journal' ? 'journalIds' : type === 'issue' ? 'issueIds' : type === 'article' ? 'articleIds' : 'thesisIds';
     setFormData(prev => ({
       ...prev,
       [fieldName]: [...(prev as any)[fieldName], id]
@@ -360,8 +410,8 @@ export default function PostEditor({ post, projectId }: PostEditorProps) {
     fetchData(); // Refresh list to get names if needed
   };
 
-  const handleLibraryToggle = (id: string, type: 'journal' | 'issue' | 'article') => {
-    const fieldName = type === 'journal' ? 'journalIds' : type === 'issue' ? 'issueIds' : 'articleIds';
+  const handleLibraryToggle = (id: string, type: 'journal' | 'issue' | 'article' | 'thesis') => {
+    const fieldName = type === 'journal' ? 'journalIds' : type === 'issue' ? 'issueIds' : type === 'article' ? 'articleIds' : 'thesisIds';
     setFormData(prev => ({
       ...prev,
       [fieldName]: (prev as any)[fieldName].filter((i: string) => i !== id)
@@ -896,6 +946,21 @@ export default function PostEditor({ post, projectId }: PostEditorProps) {
                     </button>
                   </div>
                 ))}
+                {/* Theses */}
+                {allTheses?.filter(t => formData.thesisIds.includes(t.id)).map((t) => (
+                  <div key={t.id} className="px-3 py-2 rounded-xl text-xs font-medium bg-sky-50 border border-sky-500 text-sky-900 dark:bg-sky-500/10 dark:text-sky-300 shadow-sm flex items-center justify-between group">
+                    <div className="flex items-center gap-2 overflow-hidden">
+                      <FileText className="h-3.5 w-3.5" />
+                      <div className="flex flex-col gap-0.5 overflow-hidden">
+                        <span className="font-bold truncate" title={t.title}>{t.title}</span>
+                        <span className="opacity-60 text-[10px]">Tese/Dissertação • {t.authors}</span>
+                      </div>
+                    </div>
+                    <button type="button" onClick={() => handleLibraryToggle(t.id, 'thesis')} className="p-1 hover:bg-sky-500 hover:text-white rounded-lg transition-colors">
+                      <CloseIcon className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
               </div>
               <Button
                 type="button"
@@ -966,6 +1031,7 @@ export default function PostEditor({ post, projectId }: PostEditorProps) {
         linkedJournalIds={formData.journalIds}
         linkedIssueIds={formData.issueIds}
         linkedArticleIds={formData.articleIds}
+        linkedThesisIds={formData.thesisIds}
       />
     </div>
   );

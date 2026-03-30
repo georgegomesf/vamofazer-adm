@@ -49,6 +49,7 @@ const navItems: NavItem[] = [
       { name: "Revistas", path: "/adm/journals" },
       { name: "Edições", path: "/adm/issues" },
       { name: "Artigos", path: "/adm/articles" },
+      { name: "Teses e Dissertações", path: "/adm/theses" },
     ],
   },
   {

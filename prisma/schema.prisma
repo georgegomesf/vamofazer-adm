@@ -202,6 +202,7 @@ model Post {
   postJournals PostJournal[]
   postIssues   PostIssue[]
   postArticles PostArticle[]
+  postTheses   PostThesis[]
 }
 
 model Category {
@@ -445,4 +446,35 @@ model PostArticle {
   article   Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
 
   @@id([postId, articleId])
+}
+
+model Thesis {
+  id                 String       @id @default(cuid())
+  title              String
+  abstract           String?      @map("resumo")
+  authors            String?      @map("autor")
+  url                String?      @map("link")
+  datePublished      DateTime?    @map("data_publicacao")
+  keywords           String?      @map("palavras")
+  advisor            String?      @map("orientador")
+  university         String?      @map("ies")
+  universityCity     String?      @map("uf")
+  universityInitials String?      @map("ies_sigla")
+  program            String?      @map("programa")
+  programCode        String?      @map("programa_cod")
+  degree             String?      @map("grau")
+  line               String?      @map("linha")
+  year               Int?         @map("ano")
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  posts              PostThesis[]
+}
+
+model PostThesis {
+  postId   String
+  thesisId String
+  post     Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  thesis   Thesis @relation(fields: [thesisId], references: [id], onDelete: Cascade)
+
+  @@id([postId, thesisId])
 }

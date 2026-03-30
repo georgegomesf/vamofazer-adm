@@ -86,6 +86,9 @@ export async function getPostById(id: string) {
         postArticles: {
           include: { article: true },
         },
+        postTheses: {
+          include: { thesis: true },
+        },
       },
     });
     return post;
@@ -102,7 +105,7 @@ export async function createPost(projectId: string, data: any) {
     const userId = (session?.user as any)?.id;
     const { 
       title, slug, summary, content, imageUrl, publishedAt, authorName,
-      tagIds, categoryIds, attachmentIds, actionIds, journalIds, issueIds, articleIds 
+      tagIds, categoryIds, attachmentIds, actionIds, journalIds, issueIds, articleIds, thesisIds 
     } = data;
 
     const post = await prisma.post.create({
@@ -149,6 +152,11 @@ export async function createPost(projectId: string, data: any) {
         postArticles: {
           create: articleIds?.map((articleId: string) => ({
             article: { connect: { id: articleId } }
+          }))
+        },
+        postTheses: {
+          create: thesisIds?.map((thesisId: string) => ({
+            thesis: { connect: { id: thesisId } }
           }))
         }
       },
@@ -282,6 +290,7 @@ export async function updatePost(id: string, data: any) {
         postJournals: { select: { journalId: true } },
         postIssues: { select: { issueId: true } },
         postArticles: { select: { articleId: true } },
+        postTheses: { select: { thesisId: true } },
       },
     });
 
@@ -290,6 +299,7 @@ export async function updatePost(id: string, data: any) {
     const prevJournalIds = new Set(previousPost?.postJournals.map(j => j.journalId) ?? []);
     const prevIssueIds = new Set(previousPost?.postIssues.map(i => i.issueId) ?? []);
     const prevArticleIds = new Set(previousPost?.postArticles.map(a => a.articleId) ?? []);
+    const prevThesisIds = new Set(previousPost?.postTheses.map(t => t.thesisId) ?? []);
     
     const wasUnpublished = !previousPost?.publishedAt;
 
@@ -301,6 +311,7 @@ export async function updatePost(id: string, data: any) {
     await prisma.postJournal.deleteMany({ where: { postId: id } });
     await prisma.postIssue.deleteMany({ where: { postId: id } });
     await prisma.postArticle.deleteMany({ where: { postId: id } });
+    await prisma.postThesis.deleteMany({ where: { postId: id } });
 
     const post = await prisma.post.update({
       where: { id },
@@ -347,6 +358,11 @@ export async function updatePost(id: string, data: any) {
           create: articleIds?.map((articleId: string) => ({
             article: { connect: { id: articleId } }
           }))
+        },
+        postTheses: {
+          create: thesisIds?.map((thesisId: string) => ({
+            thesis: { connect: { id: thesisId } }
+          }))
         }
       },
     });
@@ -362,6 +378,7 @@ export async function updatePost(id: string, data: any) {
     const newJournalIds = journalIds?.filter((id: string) => !prevJournalIds.has(id)) || [];
     const newIssueIds = issueIds?.filter((id: string) => !prevIssueIds.has(id)) || [];
     const newArticleIds = articleIds?.filter((id: string) => !prevArticleIds.has(id)) || [];
+    const newThesisIds = thesisIds?.filter((id: string) => !prevThesisIds.has(id)) || [];
 
     // Create POST_PUBLISHED activity only if transitioning from draft to published
     // OR if it's already published but doesn't have an activity record (to fix legacy data)
