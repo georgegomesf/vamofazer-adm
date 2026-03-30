@@ -217,6 +217,7 @@ export default function CategoryModal({ isOpen, onClose, onSuccess, category }: 
             <option value="DEFAULT">Padrão (dd/mm/aaaa)</option>
             <option value="HUMANIZED">Humanizado (d de Mês de YYYY)</option>
             <option value="YEAR">Somente Ano (YYYY)</option>
+            <option value="NONE">Não exibir data</option>
           </select>
         </div>
 
