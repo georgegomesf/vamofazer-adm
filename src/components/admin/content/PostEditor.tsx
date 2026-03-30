@@ -182,7 +182,7 @@ export default function PostEditor({ post, projectId }: PostEditorProps) {
                 }
                 content += data.abstract || "";
                 if (abntRef) {
-                  content += `\n\n**Publicado em:** ${abntRef}`;
+                  content += `\n\n${abntRef}`;
                 }
                 if (sourceLink) {
                   content += `\n\nFonte: [${sourceLink}](${sourceLink})`;
