@@ -8,7 +8,7 @@ import Button from "@/components/ui/button/Button";
 interface QuickLibraryModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (resourceId: string, type: 'journal' | 'issue' | 'article') => void;
+  onSuccess: (resourceId: string, type: 'journal' | 'issue' | 'article' | 'thesis', options?: { includeChildContent?: boolean }) => void;
   linkedJournalIds: string[];
   linkedIssueIds: string[];
   linkedArticleIds: string[];
@@ -160,7 +160,6 @@ export default function QuickLibraryModal({
             return (
               <div
                 key={item.id}
-                onClick={() => !selected && onSuccess(item.id, activeTab)}
                 className={`p-3 rounded-xl border mb-1 flex items-center justify-between transition-all group ${
                   selected 
                     ? 'border-brand-500/50 bg-brand-50 dark:bg-brand-500/5 cursor-default opacity-60' 
@@ -175,7 +174,7 @@ export default function QuickLibraryModal({
                     {activeTab === 'thesis' && <FileText className="h-5 w-5 text-gray-400" />}
                   </div>
                   <div className="overflow-hidden">
-                    <p className="font-semibold text-gray-900 dark:text-white text-sm truncate uppercase tracking-tight">
+                    <p className="font-semibold text-gray-900 dark:text-white text-sm truncate uppercase tracking-tight" title={item.title}>
                       {item.title}
                     </p>
                     <p className="text-[10px] text-gray-500 truncate flex items-center gap-2">
@@ -186,11 +185,35 @@ export default function QuickLibraryModal({
                     </p>
                   </div>
                 </div>
-                {selected ? (
-                  <Check className="h-4 w-4 text-brand-500 shrink-0" />
-                ) : (
-                  <Plus className="h-4 w-4 text-gray-300 group-hover:text-brand-500 shrink-0 transition-colors" />
-                )}
+                <div className="flex items-center gap-2">
+                  {selected ? (
+                    <Check className="h-4 w-4 text-brand-500 shrink-0" />
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      {(activeTab === 'journal' || activeTab === 'issue') && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onSuccess(item.id, activeTab, { includeChildContent: true });
+                          }}
+                          className="px-2 py-1 bg-brand-500 text-white text-[10px] font-bold rounded-lg hover:bg-brand-600 transition-colors flex items-center gap-1"
+                          title={activeTab === 'journal' ? "Incluir Galeria de Edições" : "Incluir Lista de Artigos"}
+                        >
+                          <Plus className="h-3 w-3" /> {activeTab === 'journal' ? "+ Portal Edições" : "+ Portal Artigos"}
+                        </button>
+                      )}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSuccess(item.id, activeTab);
+                        }}
+                        className="p-1 px-2 text-[10px] font-bold text-gray-400 hover:text-brand-500 transition-colors border border-transparent hover:border-brand-500/30 rounded-lg flex items-center gap-1 shrink-0"
+                      >
+                        <Plus className="h-4 w-4 shrink-0" /> Vincular
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             );
           })}

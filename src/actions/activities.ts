@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { pusherServer } from "@/lib/pusher";
 
-export type ActivityType = "POST_PUBLISHED" | "ACTION_LINKED" | "ATTACHMENT_LINKED" | "LIST_CREATED" | "ITEM_ADDED" | "NOTICE" | "JOURNAL_LINKED" | "ISSUE_LINKED" | "ARTICLE_LINKED";
+export type ActivityType = "POST_PUBLISHED" | "ACTION_LINKED" | "ATTACHMENT_LINKED" | "LIST_CREATED" | "ITEM_ADDED" | "NOTICE" | "JOURNAL_LINKED" | "ISSUE_LINKED" | "ARTICLE_LINKED" | "THESIS_LINKED";
 
 export async function createActivity(projectId: string, data: {
   type: ActivityType;
@@ -62,7 +62,7 @@ export async function getActivities(projectId: string, limit: number = 50, page:
 
     // Base types everyone sees
     const orConditions: any[] = [
-      { type: { in: ["POST_PUBLISHED", "LIST_CREATED", "NOTICE", "JOURNAL_LINKED", "ISSUE_LINKED", "ARTICLE_LINKED"] } }
+      { type: { in: ["POST_PUBLISHED", "LIST_CREATED", "NOTICE", "JOURNAL_LINKED", "ISSUE_LINKED", "ARTICLE_LINKED", "THESIS_LINKED"] } }
     ];
 
     if (userId) {
@@ -266,9 +266,10 @@ export async function getActivities(projectId: string, limit: number = 50, page:
     const actionIds = new Set<string>();
     const attachmentIds = new Set<string>();
     const listIds = new Set<string>();
+    const thesisIds = new Set<string>();
 
     combined.forEach((a: any) => {
-      let { postId, actionId, attachmentId, listId } = a.metadata || {};
+      let { postId, actionId, attachmentId, listId, thesisId } = a.metadata || {};
       
       // Fallback: Tentar extrair do URL se o metadata estiver incompleto (para atividades legadas)
       if (!postId && a.url?.startsWith('/p/')) postId = a.url.split('/').pop();
@@ -278,16 +279,18 @@ export async function getActivities(projectId: string, limit: number = 50, page:
       if (actionId) actionIds.add(actionId);
       if (attachmentId) attachmentIds.add(attachmentId);
       if (listId) listIds.add(listId);
+      if (thesisId) thesisIds.add(thesisId);
       
       // Armazenar os IDs recuperados de volta no objeto para facilitar o mapeamento posterior
-      a._recoveredIds = { postId, actionId, attachmentId, listId };
+      a._recoveredIds = { postId, actionId, attachmentId, listId, thesisId };
     });
-
-    const [posts, actions, attachments, currentLists] = await Promise.all([
+ 
+    const [posts, actions, attachments, currentLists, theses] = await Promise.all([
       postIds.size > 0 ? prisma.post.findMany({ where: { OR: [{ id: { in: Array.from(postIds) } }, { slug: { in: Array.from(postIds) } }] }, select: { id: true, title: true, slug: true, imageUrl: true } }) : [],
       actionIds.size > 0 ? prisma.action.findMany({ where: { id: { in: Array.from(actionIds) } }, select: { id: true, title: true, url: true, imageUrl: true } }) : [],
       attachmentIds.size > 0 ? prisma.attachment.findMany({ where: { id: { in: Array.from(attachmentIds) } }, select: { id: true, title: true, url: true, type: true } }) : [],
       listIds.size > 0 ? prisma.interestList.findMany({ where: { id: { in: Array.from(listIds) } }, select: { id: true, name: true, imageUrl: true, isPublic: true } }) : [],
+      thesisIds.size > 0 ? prisma.thesis.findMany({ where: { id: { in: Array.from(thesisIds) } }, select: { id: true, title: true, url: true } }) : []
     ]);
 
     const postMap = new Map();
@@ -295,9 +298,10 @@ export async function getActivities(projectId: string, limit: number = 50, page:
     const actionMap = new Map(actions.map(a => [a.id, a]));
     const attachmentMap = new Map(attachments.map(at => [at.id, at]));
     const listMap = new Map(currentLists.map(l => [l.id, l]));
+    const thesisMap = new Map(theses.map(t => [t.id, t]));
 
     combined = combined.map((a: any) => {
-      const { postId, actionId, attachmentId, listId } = a._recoveredIds || {};
+      const { postId, actionId, attachmentId, listId, thesisId } = a._recoveredIds || {};
       let updated = { ...a };
       delete (updated as any)._recoveredIds;
 
@@ -334,6 +338,17 @@ export async function getActivities(projectId: string, limit: number = 50, page:
           listName: l.name,
           isListPublic: l.isPublic,
           imageUrl: l.imageUrl || updated.metadata?.imageUrl 
+        };
+      }
+
+      if (thesisId && thesisMap.has(thesisId)) {
+        const t = thesisMap.get(thesisId)!;
+        updated.title = updated.type === "THESIS_LINKED" ? t.title : updated.title;
+        updated.url = t.url || updated.url;
+        updated.metadata = { 
+          ...updated.metadata, 
+          thesisTitle: t.title,
+          itemUrl: t.url 
         };
       }
 

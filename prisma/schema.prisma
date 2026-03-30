@@ -427,6 +427,8 @@ model PostJournal {
   post      Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
   journal   Journal @relation(fields: [journalId], references: [id], onDelete: Cascade)
 
+  includeIssues Boolean @default(false)
+
   @@id([postId, journalId])
 }
 
@@ -435,6 +437,8 @@ model PostIssue {
   issueId String
   post    Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
   issue   Issue  @relation(fields: [issueId], references: [id], onDelete: Cascade)
+
+  includeArticles Boolean @default(false)
 
   @@id([postId, issueId])
 }

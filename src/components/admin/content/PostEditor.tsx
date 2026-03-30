@@ -51,8 +51,8 @@ export default function PostEditor({ post, projectId }: PostEditorProps) {
     categoryIds: [] as string[],
     attachmentIds: [] as string[],
     actionIds: [] as string[],
-    journalIds: [] as string[],
-    issueIds: [] as string[],
+    journalIds: [] as any[],
+    issueIds: [] as any[],
     articleIds: [] as string[],
     thesisIds: [] as string[],
     publishedAt: null as string | null,
@@ -89,8 +89,8 @@ export default function PostEditor({ post, projectId }: PostEditorProps) {
         tagIds: post.tags?.filter((pt: any) => pt.tag).map((pt: any) => pt.tagId) || [],
         attachmentIds: post.attachments?.filter((pa: any) => pa.attachment).map((pa: any) => pa.attachmentId) || [],
         actionIds: post.actions?.filter((pa: any) => pa.action).map((pa: any) => pa.actionId) || [],
-        journalIds: post.postJournals?.filter((pj: any) => pj.journal).map((pj: any) => pj.journalId) || [],
-        issueIds: post.postIssues?.filter((pi: any) => pi.issue).map((pi: any) => pi.issueId) || [],
+        journalIds: post.postJournals?.map((pj: any) => ({ id: pj.journalId, includeIssues: pj.includeIssues })) || [],
+        issueIds: post.postIssues?.map((pi: any) => ({ id: pi.issueId, includeArticles: pi.includeArticles })) || [],
         articleIds: post.postArticles?.filter((pa: any) => pa.article).map((pa: any) => pa.articleId) || [],
         thesisIds: post.postTheses?.filter((pt: any) => pt.thesis).map((pt: any) => pt.thesisId) || [],
         publishedAt: formatToLocalDatetime(post.publishedAt) || null,
@@ -401,12 +401,24 @@ export default function PostEditor({ post, projectId }: PostEditorProps) {
     }));
   };
 
-  const handleLibraryLink = (id: string, type: 'journal' | 'issue' | 'article' | 'thesis') => {
+  const handleLibraryLink = (id: string, type: 'journal' | 'issue' | 'article' | 'thesis', options?: { includeChildContent?: boolean }) => {
     const fieldName = type === 'journal' ? 'journalIds' : type === 'issue' ? 'issueIds' : type === 'article' ? 'articleIds' : 'thesisIds';
-    setFormData(prev => ({
-      ...prev,
-      [fieldName]: [...(prev as any)[fieldName], id]
-    }));
+    setFormData(prev => {
+      const current = (prev as any)[fieldName];
+      let newItem: any = id;
+      if (type === 'journal' && options?.includeChildContent) {
+        newItem = { id, includeIssues: true };
+      } else if (type === 'issue' && options?.includeChildContent) {
+        newItem = { id, includeArticles: true };
+      } else if (type === 'journal' || type === 'issue') {
+        newItem = { id, [type === 'journal' ? 'includeIssues' : 'includeArticles']: false };
+      }
+
+      return {
+        ...prev,
+        [fieldName]: [...current, newItem]
+      };
+    });
     fetchData(); // Refresh list to get names if needed
   };
 
@@ -414,7 +426,7 @@ export default function PostEditor({ post, projectId }: PostEditorProps) {
     const fieldName = type === 'journal' ? 'journalIds' : type === 'issue' ? 'issueIds' : type === 'article' ? 'articleIds' : 'thesisIds';
     setFormData(prev => ({
       ...prev,
-      [fieldName]: (prev as any)[fieldName].filter((i: string) => i !== id)
+      [fieldName]: (prev as any)[fieldName].filter((i: any) => (typeof i === 'string' ? i : i.id) !== id)
     }));
   };
 
@@ -902,35 +914,49 @@ export default function PostEditor({ post, projectId }: PostEditorProps) {
             <div className="space-y-4">
               <div className="flex flex-col gap-2 pt-2">
                 {/* Journals */}
-                {allJournals?.filter(j => formData.journalIds.includes(j.id)).map((j) => (
-                  <div key={j.id} className="px-3 py-2 rounded-xl text-xs font-medium bg-indigo-50 border border-indigo-500 text-indigo-900 dark:bg-indigo-500/10 dark:text-indigo-300 shadow-sm flex items-center justify-between group">
-                    <div className="flex items-center gap-2 overflow-hidden">
-                      <Book className="h-3.5 w-3.5" />
-                      <div className="flex flex-col gap-0.5 overflow-hidden">
-                        <span className="font-bold truncate" title={j.title}>{j.title}</span>
-                        <span className="opacity-60 text-[10px]">Revista</span>
+                {formData.journalIds.map((lj) => {
+                  const jId = typeof lj === 'string' ? lj : lj.id;
+                  const j = allJournals?.find(aj => aj.id === jId);
+                  if (!j) return null;
+                  const includeIssues = typeof lj === 'object' && lj.includeIssues;
+                  
+                  return (
+                    <div key={j.id} className="px-3 py-2 rounded-xl text-xs font-medium bg-indigo-50 border border-indigo-500 text-indigo-900 dark:bg-indigo-500/10 dark:text-indigo-300 shadow-sm flex items-center justify-between group">
+                      <div className="flex items-center gap-2 overflow-hidden">
+                        <Book className="h-3.5 w-3.5" />
+                        <div className="flex flex-col gap-0.5 overflow-hidden">
+                          <span className="font-bold truncate" title={j.title}>{j.title}</span>
+                          <span className="opacity-60 text-[10px]">Revista {includeIssues && " • Portal de Edições"}</span>
+                        </div>
                       </div>
+                      <button type="button" onClick={() => handleLibraryToggle(j.id, 'journal')} className="p-1 hover:bg-indigo-500 hover:text-white rounded-lg transition-colors">
+                        <CloseIcon className="h-3.5 w-3.5" />
+                      </button>
                     </div>
-                    <button type="button" onClick={() => handleLibraryToggle(j.id, 'journal')} className="p-1 hover:bg-indigo-500 hover:text-white rounded-lg transition-colors">
-                      <CloseIcon className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                ))}
+                  );
+                })}
                 {/* Issues */}
-                {allIssues?.filter(i => formData.issueIds.includes(i.id)).map((i) => (
-                  <div key={i.id} className="px-3 py-2 rounded-xl text-xs font-medium bg-amber-50 border border-amber-500 text-amber-900 dark:bg-amber-500/10 dark:text-amber-300 shadow-sm flex items-center justify-between group">
-                    <div className="flex items-center gap-2 overflow-hidden">
-                      <Layers className="h-3.5 w-3.5" />
-                      <div className="flex flex-col gap-0.5 overflow-hidden">
-                        <span className="font-bold truncate" title={i.title}>{i.title}</span>
-                        <span className="opacity-60 text-[10px]">Edição • {i.journal?.title}</span>
+                {formData.issueIds.map((li) => {
+                  const iId = typeof li === 'string' ? li : li.id;
+                  const i = allIssues?.find(ai => ai.id === iId);
+                  if (!i) return null;
+                  const includeArticles = typeof li === 'object' && li.includeArticles;
+
+                  return (
+                    <div key={i.id} className="px-3 py-2 rounded-xl text-xs font-medium bg-amber-50 border border-amber-500 text-amber-900 dark:bg-amber-500/10 dark:text-amber-300 shadow-sm flex items-center justify-between group">
+                      <div className="flex items-center gap-2 overflow-hidden">
+                        <Layers className="h-3.5 w-3.5" />
+                        <div className="flex flex-col gap-0.5 overflow-hidden">
+                          <span className="font-bold truncate" title={i.title}>{i.title}</span>
+                          <span className="opacity-60 text-[10px]">Edição {includeArticles && " • Portal de Artigos"} {i.journal?.title && ` • ${i.journal.title}`}</span>
+                        </div>
                       </div>
+                      <button type="button" onClick={() => handleLibraryToggle(i.id, 'issue')} className="p-1 hover:bg-amber-500 hover:text-white rounded-lg transition-colors">
+                        <CloseIcon className="h-3.5 w-3.5" />
+                      </button>
                     </div>
-                    <button type="button" onClick={() => handleLibraryToggle(i.id, 'issue')} className="p-1 hover:bg-amber-500 hover:text-white rounded-lg transition-colors">
-                      <CloseIcon className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                ))}
+                  );
+                })}
                 {/* Articles */}
                 {allArticles?.filter(a => formData.articleIds.includes(a.id)).map((a) => (
                   <div key={a.id} className="px-3 py-2 rounded-xl text-xs font-medium bg-emerald-50 border border-emerald-500 text-emerald-900 dark:bg-emerald-500/10 dark:text-emerald-300 shadow-sm flex items-center justify-between group">
@@ -1028,8 +1054,8 @@ export default function PostEditor({ post, projectId }: PostEditorProps) {
         isOpen={isLibraryModalOpen}
         onClose={() => setIsLibraryModalOpen(false)}
         onSuccess={handleLibraryLink}
-        linkedJournalIds={formData.journalIds}
-        linkedIssueIds={formData.issueIds}
+        linkedJournalIds={formData.journalIds.map(j => typeof j === 'string' ? j : j.id)}
+        linkedIssueIds={formData.issueIds.map(i => typeof i === 'string' ? i : i.id)}
         linkedArticleIds={formData.articleIds}
         linkedThesisIds={formData.thesisIds}
       />

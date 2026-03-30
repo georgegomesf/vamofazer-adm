@@ -78,10 +78,10 @@ export async function getPostById(id: string) {
           include: { action: true },
         },
         postJournals: {
-          include: { journal: true },
+          select: { journal: true, includeIssues: true, journalId: true },
         },
         postIssues: {
-          include: { issue: true },
+          select: { issue: true, includeArticles: true, issueId: true },
         },
         postArticles: {
           include: { article: true },
@@ -140,14 +140,24 @@ export async function createPost(projectId: string, data: any) {
           }))
         },
         postJournals: {
-          create: journalIds?.map((journalId: string) => ({
-            journal: { connect: { id: journalId } }
-          }))
+          create: journalIds?.map((j: any) => {
+            const jId = typeof j === 'string' ? j : j.id;
+            const includeIssues = typeof j === 'string' ? false : !!j.includeIssues;
+            return {
+              journal: { connect: { id: jId } },
+              includeIssues
+            };
+          })
         },
         postIssues: {
-          create: issueIds?.map((issueId: string) => ({
-            issue: { connect: { id: issueId } }
-          }))
+          create: issueIds?.map((i: any) => {
+            const iId = typeof i === 'string' ? i : i.id;
+            const includeArticles = typeof i === 'string' ? false : !!i.includeArticles;
+            return {
+              issue: { connect: { id: iId } },
+              includeArticles
+            };
+          })
         },
         postArticles: {
           create: articleIds?.map((articleId: string) => ({
@@ -260,6 +270,23 @@ export async function createPost(projectId: string, data: any) {
       }
     }
 
+    // Create Activity: Theses Linked
+    if (thesisIds?.length > 0 && post.publishedAt) {
+      for (const thesisId of thesisIds) {
+        const thesis = await prisma.thesis.findUnique({ where: { id: thesisId } });
+        if (thesis) {
+          await createActivity(projectId, {
+            type: "THESIS_LINKED",
+            title: thesis.title,
+            description: `A tese/dissertação foi vinculada à postagem "${post.title}".`,
+            url: `/p/${post.slug}`,
+            userId: post.createdBy || undefined,
+            metadata: { postId: post.id, thesisId: thesis.id }
+          });
+        }
+      }
+    }
+
     revalidatePath("/adm/posts");
     return { success: true, post };
   } catch (error: any) {
@@ -278,7 +305,7 @@ export async function updatePost(id: string, data: any) {
     const userId = (session?.user as any)?.id;
     const { 
       title, slug, summary, content, imageUrl, publishedAt, authorName,
-      tagIds, categoryIds, attachmentIds, actionIds, journalIds, issueIds, articleIds 
+      tagIds, categoryIds, attachmentIds, actionIds, journalIds, issueIds, articleIds, thesisIds 
     } = data;
 
     // Snapshot current state BEFORE deleting relations (to compute diffs)
@@ -345,14 +372,24 @@ export async function updatePost(id: string, data: any) {
           }))
         },
         postJournals: {
-          create: journalIds?.map((journalId: string) => ({
-            journal: { connect: { id: journalId } }
-          }))
+          create: journalIds?.map((j: any) => {
+            const jId = typeof j === 'string' ? j : j.id;
+            const includeIssues = typeof j === 'string' ? false : !!j.includeIssues;
+            return {
+              journal: { connect: { id: jId } },
+              includeIssues
+            };
+          })
         },
         postIssues: {
-          create: issueIds?.map((issueId: string) => ({
-            issue: { connect: { id: issueId } }
-          }))
+          create: issueIds?.map((i: any) => {
+            const iId = typeof i === 'string' ? i : i.id;
+            const includeArticles = typeof i === 'string' ? false : !!i.includeArticles;
+            return {
+              issue: { connect: { id: iId } },
+              includeArticles
+            };
+          })
         },
         postArticles: {
           create: articleIds?.map((articleId: string) => ({
@@ -373,10 +410,13 @@ export async function updatePost(id: string, data: any) {
     const addedImageToPublished = post.publishedAt && !wasUnpublished && (post.imageUrl && !previousPost?.imageUrl);
     
     // Novas ações ou anexos inseridos (verificação pré-laços)
+    const normalizedJournalIds = journalIds?.map((j: any) => typeof j === 'string' ? j : j.id) || [];
+    const normalizedIssueIds = issueIds?.map((i: any) => typeof i === 'string' ? i : i.id) || [];
+
     const newActionIds = actionIds?.filter((id: string) => !prevActionIds.has(id)) || [];
     const newAttachmentIds = attachmentIds?.filter((id: string) => !prevAttachmentIds.has(id)) || [];
-    const newJournalIds = journalIds?.filter((id: string) => !prevJournalIds.has(id)) || [];
-    const newIssueIds = issueIds?.filter((id: string) => !prevIssueIds.has(id)) || [];
+    const newJournalIds = normalizedJournalIds.filter((id: string) => !prevJournalIds.has(id));
+    const newIssueIds = normalizedIssueIds.filter((id: string) => !prevIssueIds.has(id));
     const newArticleIds = articleIds?.filter((id: string) => !prevArticleIds.has(id)) || [];
     const newThesisIds = thesisIds?.filter((id: string) => !prevThesisIds.has(id)) || [];
 
@@ -485,6 +525,23 @@ export async function updatePost(id: string, data: any) {
             url: `/p/${post.slug}`,
             userId: post.updatedBy || undefined,
             metadata: { postId: post.id, articleId: article.id }
+          });
+        }
+      }
+    }
+
+    // Activity: THESIS_LINKED — only for newly added theses
+    if (post.publishedAt) {
+      for (const thesisId of newThesisIds) {
+        const thesis = await prisma.thesis.findUnique({ where: { id: thesisId } });
+        if (thesis) {
+          await createActivity(post.projectId, {
+            type: "THESIS_LINKED",
+            title: thesis.title,
+            description: `A tese/dissertação foi vinculada à postagem "${post.title}".`,
+            url: `/p/${post.slug}`,
+            userId: post.updatedBy || undefined,
+            metadata: { postId: post.id, thesisId: thesis.id }
           });
         }
       }
