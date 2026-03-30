@@ -164,12 +164,21 @@ export default function PostEditor({ post, projectId }: PostEditorProps) {
                   .replace(/\s+/g, "-");
 
                 const journalTitle = data.issue?.journal?.title || "";
-                const vol = data.issue?.volume ? `v. ${data.issue.volume}` : "";
-                const num = data.issue?.number ? `n. ${data.issue.number}` : "";
-                const pages = data.pages ? `p. ${data.pages}` : "";
-                const year = data.issue?.year || "";
+                
+                const formatPart = (prefix: string, value: any) => {
+                  if (value === null || value === undefined || value === "" || String(value).toLowerCase() === "null") {
+                    return "";
+                  }
+                  return `${prefix}${value}`;
+                };
 
-                const abntRef = [journalTitle, vol, num, pages, year].filter(Boolean).join(", ") + ".";
+                const vol = formatPart("v. ", data.issue?.volume);
+                const num = formatPart("n. ", data.issue?.number);
+                const pages = formatPart("p. ", data.pages);
+                const year = formatPart("", data.issue?.year);
+
+                const abntRefParts = [journalTitle, vol, num, pages, year].filter(Boolean);
+                const abntRef = abntRefParts.length > 0 ? abntRefParts.join(", ") + "." : "";
                 const sourceLink = data.url || (data.doi ? `https://doi.org/${data.doi}` : null);
 
                 // Summary: First 200 characters of abstract
