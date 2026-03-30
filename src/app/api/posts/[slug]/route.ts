@@ -62,7 +62,21 @@ export async function GET(
         postIssues: { 
           include: { 
             issue: {
-              include: { journal: true }
+              include: { 
+                journal: true,
+                articles: {
+                  orderBy: { title: 'asc' },
+                  include: {
+                    posts: {
+                      include: {
+                        post: {
+                          select: { slug: true }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
             } 
           } 
         },
