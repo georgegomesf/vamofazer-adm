@@ -91,6 +91,7 @@ export async function GET(
             } 
           } 
         },
+        postTheses: { include: { thesis: true } },
       },
     });
 

@@ -71,6 +71,15 @@ export async function GET(request: Request) {
             { postJournals: { some: { journal: { 
               title: { contains: search, mode: 'insensitive' }
             } } } },
+            { postTheses: { some: { thesis: { 
+              OR: [
+                { title: { contains: search, mode: 'insensitive' } },
+                { authors: { contains: search, mode: 'insensitive' } },
+                { abstract: { contains: search, mode: 'insensitive' } },
+                { university: { contains: search, mode: 'insensitive' } },
+                { advisor: { contains: search, mode: 'insensitive' } },
+              ]
+            } } } },
           ] : []),
           ...(dominantType === "ACTIONS" ? [
             { actions: { some: { action: {
@@ -181,6 +190,7 @@ export async function GET(request: Request) {
             },
             tags: { include: { tag: true } },
             actions: { include: { action: true } },
+            postTheses: { include: { thesis: true } },
           },
           orderBy: { publishedAt: "desc" },
         }),
