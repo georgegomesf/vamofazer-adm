@@ -476,7 +476,7 @@ export default function PostEditor({ post, projectId }: PostEditorProps) {
     if (pubAt) {
       try {
         if (pubAt.length === 16 && !pubAt.includes("Z")) {
-          publishedAtIso = new Date(pubAt + ":00Z").toISOString();
+          publishedAtIso = new Date(pubAt + ":00-03:00").toISOString();
         } else {
           publishedAtIso = new Date(pubAt).toISOString();
         }
