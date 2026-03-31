@@ -65,6 +65,11 @@ export default function PostEditor({ post, projectId }: PostEditorProps) {
   const formatToLocalDatetime = (date: Date | string | null) => {
     if (!date) return null;
     try {
+      if (typeof date === 'string') {
+        // Assume API strings are stored exactly as the visual numbers we want, so just strip the trailing zeros.
+        return date.slice(0, 16);
+      }
+      // For Date objects (like new Date()), we need to shift the absolute time to a localized string.
       const d = new Date(date);
       if (isNaN(d.getTime())) return null;
       const z = d.getTimezoneOffset() * 60 * 1000;
@@ -476,7 +481,7 @@ export default function PostEditor({ post, projectId }: PostEditorProps) {
     if (pubAt) {
       try {
         if (pubAt.length === 16 && !pubAt.includes("Z")) {
-          publishedAtIso = new Date(pubAt + ":00-03:00").toISOString();
+          publishedAtIso = new Date(pubAt + ":00Z").toISOString();
         } else {
           publishedAtIso = new Date(pubAt).toISOString();
         }
@@ -558,8 +563,9 @@ export default function PostEditor({ post, projectId }: PostEditorProps) {
             <Button
               onClick={async (e) => {
                 const now = new Date();
-                const pad = (n: number) => n.toString().padStart(2, '0');
-                const nowStr = `${now.getUTCFullYear()}-${pad(now.getUTCMonth() + 1)}-${now.getUTCDate() < 10 ? '0' + now.getUTCDate() : now.getUTCDate()}T${pad(now.getUTCHours())}:${pad(now.getUTCMinutes())}`;
+                const nowStr = formatToLocalDatetime(now);
+
+                if (!nowStr) return;
 
                 const targetDate = formData.publishedAt || nowStr;
                 setFormData(prev => ({ ...prev, publishedAt: targetDate }));

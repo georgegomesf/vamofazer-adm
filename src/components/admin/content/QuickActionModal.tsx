@@ -42,8 +42,8 @@ export default function QuickActionModal({ isOpen, onClose, onSuccess, allAction
     try {
       const submissionData = {
         ...formData,
-        startDate: formData.startDate ? new Date(formData.startDate + (formData.startDate.includes("Z") ? "" : "-03:00")).toISOString() : null,
-        endDate: formData.endDate ? new Date(formData.endDate + (formData.endDate.includes("Z") ? "" : "-03:00")).toISOString() : null,
+        startDate: formData.startDate ? new Date(formData.startDate + (formData.startDate.includes("Z") ? "" : "Z")).toISOString() : null,
+        endDate: formData.endDate ? new Date(formData.endDate + (formData.endDate.includes("Z") ? "" : "Z")).toISOString() : null,
       };
       
       const result = await createAction(projectId, submissionData);
