@@ -128,37 +128,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         strategy: "jwt",
     },
     pages: {
-        signIn: "/auth/signin",
-    },
-    cookies: {
-        sessionToken: {
-            name: "redefilosofica.session-token",
-            options: {
-                httpOnly: true,
-                sameSite: "lax",
-                path: "/",
-                secure: process.env.NODE_ENV === "production",
-                // Removida a trava de domain fixo para suportar múltiplos domínios (basefilosofica.com.br, etc)
-                // O navegador gravará o cookie para o host atual automaticamente.
-            },
-        },
-        callbackUrl: {
-            name: "redefilosofica.callback-url",
-            options: {
-                httpOnly: true,
-                sameSite: "lax",
-                path: "/",
-                secure: process.env.NODE_ENV === "production",
-            },
-        },
-        csrfToken: {
-            name: "redefilosofica.csrf-token",
-            options: {
-                httpOnly: true,
-                sameSite: "lax",
-                path: "/",
-                secure: process.env.NODE_ENV === "production",
-            },
-        },
+        signIn: "/signin",
     },
 });

@@ -22,12 +22,20 @@ function AuthCallbackContent() {
                 signIn("token-transfer", { st, redirect: false });
             } else {
                 // Login normal: cria sessão, sincroniza com Web e redireciona
-                signIn("token-transfer", { st, redirect: false }).then(async () => {
+                signIn("token-transfer", { st, redirect: false }).then(async (res) => {
+                    if (res?.error) {
+                        console.error("SSO Error:", res.error);
+                        window.location.href = "/";
+                        return;
+                    }
                     const webUrl = process.env.NEXT_PUBLIC_WEB_SERVICE_URL;
                     if (webUrl) {
                         await syncSessionToPeer(webUrl, "/");
                     }
-                    router.push(dest);
+                    window.location.href = dest;
+                }).catch(err => {
+                    console.error("SSO SignIn failed:", err);
+                    window.location.href = "/";
                 });
             }
         } else {
