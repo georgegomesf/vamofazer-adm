@@ -8,6 +8,7 @@ import { getPosts, deletePost } from "@/actions/posts";
 import { getCategories } from "@/actions/categories";
 import DeleteModal from "@/components/admin/content/DeleteModal";
 import Pagination from "@/components/ui/pagination/Pagination";
+import { useProject } from "@/context/ProjectContext";
 
 export default function PostsPage() {
   const [search, setSearch] = useState("");
@@ -23,11 +24,11 @@ export default function PostsPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const webUrl = process.env.NEXT_PUBLIC_WEB_SERVICE_URL || "http://localhost:3000";
 
-  const projectId = process.env.NEXT_PUBLIC_PROJECT_ID as string;
+  const { projectId } = useProject();
 
   useEffect(() => {
     fetchPosts();
-  }, [currentPage, search, statusFilter, categoryFilter]);
+  }, [currentPage, search, statusFilter, categoryFilter, projectId]);
 
   useEffect(() => {
     async function loadCategories() {
@@ -38,6 +39,7 @@ export default function PostsPage() {
   }, [projectId]);
 
   async function fetchPosts() {
+    if (!projectId) return;
     setLoading(true);
     const result = await getPosts(projectId, {
       page: currentPage,

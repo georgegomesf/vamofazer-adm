@@ -5,6 +5,7 @@ import { X, Save, Loader2, Calendar, Clock, ListTodo, Type, Building2, Globe, Se
 import { Modal } from "@/components/ui/modal";
 import Button from "@/components/ui/button/Button";
 import { createAction } from "@/actions/actions";
+import { useProject } from "@/context/ProjectContext";
 
 interface QuickActionModalProps {
   isOpen: boolean;
@@ -28,7 +29,7 @@ export default function QuickActionModal({ isOpen, onClose, onSuccess, allAction
     endDate: "",
   });
 
-  const projectId = process.env.NEXT_PUBLIC_PROJECT_ID as string;
+  const { projectId } = useProject();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;

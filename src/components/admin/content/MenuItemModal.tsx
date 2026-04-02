@@ -7,6 +7,7 @@ import Button from "@/components/ui/button/Button";
 import { createMenuItem, updateMenuItem, getMenuItems } from "@/actions/menu";
 import { getCategories } from "@/actions/categories";
 import { getPosts } from "@/actions/posts";
+import { useProject } from "@/context/ProjectContext";
 
 interface MenuItemModalProps {
   isOpen: boolean;
@@ -33,7 +34,7 @@ export default function MenuItemModal({ isOpen, onClose, onSuccess, item, parent
     linkType: "url" as "url" | "category" | "post" | "section",
   });
 
-  const projectId = process.env.NEXT_PUBLIC_PROJECT_ID as string;
+  const { projectId } = useProject();
 
   useEffect(() => {
     if (isOpen) {

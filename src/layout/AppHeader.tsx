@@ -4,11 +4,14 @@ import { useSidebar } from "@/context/SidebarContext";
 import { useProject } from "@/context/ProjectContext";
 import Image from "next/image";
 import Link from "next/link";
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
+import { ChevronDown, Layers } from "lucide-react";
 
 const AppHeader: React.FC = () => {
   const { isMobileOpen, toggleSidebar, toggleMobileSidebar } = useSidebar();
-  const { project } = useProject();
+  const { project, projects, projectId, switchProject, loading } = useProject();
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const handleToggle = () => {
     if (window.innerWidth >= 1024) {
@@ -17,6 +20,17 @@ const AppHeader: React.FC = () => {
       toggleMobileSidebar();
     }
   };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   return (
     <header className="sticky top-0 flex w-full bg-white border-gray-200 z-99999 dark:border-gray-800 dark:bg-gray-900 lg:border-b">
@@ -40,24 +54,89 @@ const AppHeader: React.FC = () => {
 
           <Link href="/" className="lg:hidden">
             {project?.logoHorizontalUrl ? (
-                <img
-                    src={project.logoHorizontalUrl}
-                    alt={project.name || "Logo"}
-                    className="h-8 w-auto object-contain"
-                />
+              <img
+                src={project.logoHorizontalUrl}
+                alt={project.name || "Logo"}
+                className="h-8 w-auto object-contain"
+              />
             ) : (
-                <Image
-                    width={154}
-                    height={32}
-                    className="dark:hidden"
-                    src="/images/logo/logo.svg"
-                    alt="Logo"
-                />
+              <Image
+                width={154}
+                height={32}
+                className="dark:hidden"
+                src="/images/logo/logo.svg"
+                alt="Logo"
+              />
             )}
           </Link>
         </div>
 
         <div className="flex items-center gap-2 sm:gap-4">
+          {/* Project Switcher */}
+          {projects.length > 1 && (
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setDropdownOpen((prev) => !prev)}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl border border-gray-200 bg-gray-50 hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700 transition-all text-sm font-medium text-gray-700 dark:text-gray-300 max-w-[220px]"
+                title="Trocar de projeto"
+              >
+                <Layers className="w-4 h-4 flex-shrink-0 text-brand-500" />
+                <span className="truncate max-w-[140px]">
+                  {loading
+                    ? "Carregando..."
+                    : project?.name ?? "Selecionar Projeto"}
+                </span>
+                <ChevronDown
+                  className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""}`}
+                />
+              </button>
+
+              {dropdownOpen && (
+                <div className="absolute right-0 mt-2 w-64 rounded-2xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-900 overflow-hidden z-50">
+                  <div className="px-4 py-2.5 border-b border-gray-100 dark:border-gray-800">
+                    <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                      Seus Projetos
+                    </p>
+                  </div>
+                  <ul className="py-1.5 max-h-72 overflow-y-auto">
+                    {projects.map((p) => {
+                      const isActive = p.id === projectId;
+                      return (
+                        <li key={p.id}>
+                          <button
+                            onClick={() => {
+                              setDropdownOpen(false);
+                              if (!isActive) switchProject(p.id);
+                            }}
+                            className={`w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors ${
+                              isActive
+                                ? "bg-brand-50 text-brand-700 font-semibold dark:bg-brand-500/10 dark:text-brand-400"
+                                : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                            }`}
+                          >
+                            {p.logoUrl ? (
+                              <img src={p.logoUrl} alt={p.name} className="w-6 h-6 rounded object-contain flex-shrink-0" />
+                            ) : (
+                              <div className={`w-6 h-6 rounded flex items-center justify-center text-xs font-bold flex-shrink-0 ${isActive ? "bg-brand-500 text-white" : "bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400"}`}>
+                                {p.name.charAt(0).toUpperCase()}
+                              </div>
+                            )}
+                            <span className="truncate">{p.name}</span>
+                            {isActive && (
+                              <svg className="ml-auto w-4 h-4 flex-shrink-0 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+
           <UserDropdown />
         </div>
       </div>

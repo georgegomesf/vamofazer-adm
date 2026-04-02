@@ -6,6 +6,7 @@ import { Modal } from "@/components/ui/modal";
 import Button from "@/components/ui/button/Button";
 import { createCategory, updateCategory } from "@/actions/categories";
 import { uploadImage, deleteImage } from "@/actions/upload";
+import { useProject } from "@/context/ProjectContext";
 
 interface CategoryModalProps {
   isOpen: boolean;
@@ -28,7 +29,7 @@ export default function CategoryModal({ isOpen, onClose, onSuccess, category }: 
     dateFormat: "DEFAULT",
   });
 
-  const projectId = process.env.NEXT_PUBLIC_PROJECT_ID as string;
+  const { projectId } = useProject();
 
   useEffect(() => {
     if (category) {
@@ -106,6 +107,7 @@ export default function CategoryModal({ isOpen, onClose, onSuccess, category }: 
       if (category) {
         result = await updateCategory(category.id, formData);
       } else {
+        if (!projectId) { alert("Projeto não selecionado."); return; }
         result = await createCategory(projectId, formData);
       }
 

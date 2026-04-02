@@ -5,6 +5,7 @@ import { X, Save, Loader2, Tag as TagIcon } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import Button from "@/components/ui/button/Button";
 import { createTag, updateTag } from "@/actions/tags";
+import { useProject } from "@/context/ProjectContext";
 
 interface TagModalProps {
   isOpen: boolean;
@@ -20,7 +21,7 @@ export default function TagModal({ isOpen, onClose, onSuccess, tag }: TagModalPr
     slug: "",
   });
 
-  const projectId = process.env.NEXT_PUBLIC_PROJECT_ID as string;
+  const { projectId } = useProject();
 
   useEffect(() => {
     if (tag) {

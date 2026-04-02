@@ -7,6 +7,7 @@ import { getTags, deleteTag } from "@/actions/tags";
 import TagModal from "@/components/admin/content/TagModal";
 import DeleteModal from "@/components/admin/content/DeleteModal";
 import Pagination from "@/components/ui/pagination/Pagination";
+import { useProject } from "@/context/ProjectContext";
 
 export default function TagsPage() {
   const [search, setSearch] = useState("");
@@ -19,13 +20,14 @@ export default function TagsPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const projectId = process.env.NEXT_PUBLIC_PROJECT_ID as string;
+  const { projectId } = useProject();
 
   useEffect(() => {
     fetchTags();
-  }, []);
+  }, [projectId]);
 
   async function fetchTags() {
+    if (!projectId) return;
     setLoading(true);
     const data = await getTags(projectId);
     setTags(data);

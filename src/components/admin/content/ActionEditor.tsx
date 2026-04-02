@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Button from "@/components/ui/button/Button";
 import { createAction, updateAction } from "@/actions/actions";
 import { uploadImage } from "@/actions/upload";
+import { useProject } from "@/context/ProjectContext";
 
 interface ActionEditorProps {
   action?: any; // If provided, it's edit mode
@@ -27,7 +28,7 @@ export default function ActionEditor({ action }: ActionEditorProps) {
     endDate: "",
   });
 
-  const projectId = process.env.NEXT_PUBLIC_PROJECT_ID as string;
+  const { projectId } = useProject();
 
   const formatToLocalDatetime = (dateString?: string) => {
     if (!dateString) return "";

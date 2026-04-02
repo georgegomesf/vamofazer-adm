@@ -6,6 +6,7 @@ import { Modal } from "@/components/ui/modal";
 import Button from "@/components/ui/button/Button";
 import { createAttachment } from "@/actions/attachments";
 import { getAttachmentTypeFromUrl } from "@/lib/attachment-utils";
+import { useProject } from "@/context/ProjectContext";
 
 interface QuickAttachmentModalProps {
   isOpen: boolean;
@@ -26,7 +27,7 @@ export default function QuickAttachmentModal({ isOpen, onClose, onSuccess, allAt
     url: "",
   });
 
-  const projectId = process.env.NEXT_PUBLIC_PROJECT_ID as string;
+  const { projectId } = useProject();
 
   useEffect(() => {
     if (formData.url) {

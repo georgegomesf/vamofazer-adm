@@ -28,6 +28,7 @@ import {
 import { Modal } from "@/components/ui/modal";
 import Badge from "@/components/ui/badge/Badge";
 import Pagination from "@/components/ui/pagination/Pagination";
+import { useProject } from "@/context/ProjectContext";
 
 interface ProjectUser {
   id: string;
@@ -68,7 +69,7 @@ export default function UsuariosPage() {
     role: "visitor"
   });
 
-  const projectId = process.env.NEXT_PUBLIC_PROJECT_ID;
+  const { projectId } = useProject();
   const authServiceUrl = process.env.NEXT_PUBLIC_AUTH_SERVICE_URL;
 
   useEffect(() => {

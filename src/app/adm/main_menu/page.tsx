@@ -6,6 +6,7 @@ import Button from "@/components/ui/button/Button";
 import { getMenuItems, deleteMenuItem, reorderMenuItems } from "@/actions/menu";
 import MenuItemModal from "@/components/admin/content/MenuItemModal";
 import DeleteModal from "@/components/admin/content/DeleteModal";
+import { useProject } from "@/context/ProjectContext";
 // Import DnD Kit
 import {
   DndContext,
@@ -134,7 +135,7 @@ export default function MainMenuPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSavingOrder, setIsSavingOrder] = useState(false);
 
-  const projectId = process.env.NEXT_PUBLIC_PROJECT_ID as string;
+  const { projectId } = useProject();
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -145,9 +146,10 @@ export default function MainMenuPage() {
 
   useEffect(() => {
     fetchItems();
-  }, []);
+  }, [projectId]);
 
   async function fetchItems() {
+    if (!projectId) return;
     setLoading(true);
     const data = await getMenuItems(projectId);
     setItems(data);

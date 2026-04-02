@@ -7,6 +7,7 @@ import { getCategories, deleteCategory } from "@/actions/categories";
 import CategoryModal from "@/components/admin/content/CategoryModal";
 import DeleteModal from "@/components/admin/content/DeleteModal";
 import Pagination from "@/components/ui/pagination/Pagination";
+import { useProject } from "@/context/ProjectContext";
 
 export default function CategoriesPage() {
   const [search, setSearch] = useState("");
@@ -19,13 +20,14 @@ export default function CategoriesPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const projectId = process.env.NEXT_PUBLIC_PROJECT_ID as string;
+  const { projectId } = useProject();
 
   useEffect(() => {
     fetchCategories();
-  }, []);
+  }, [projectId]);
 
   async function fetchCategories() {
+    if (!projectId) return;
     setLoading(true);
     const data = await getCategories(projectId);
     setCategories(data);

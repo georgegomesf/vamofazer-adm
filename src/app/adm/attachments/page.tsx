@@ -7,6 +7,7 @@ import Button from "@/components/ui/button/Button";
 import { getAttachments, deleteAttachment } from "@/actions/attachments";
 import DeleteModal from "@/components/admin/content/DeleteModal";
 import Pagination from "@/components/ui/pagination/Pagination";
+import { useProject } from "@/context/ProjectContext";
 
 export default function AttachmentsPage() {
   const [search, setSearch] = useState("");
@@ -17,13 +18,14 @@ export default function AttachmentsPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const projectId = process.env.NEXT_PUBLIC_PROJECT_ID as string;
+  const { projectId } = useProject();
 
   useEffect(() => {
     fetchAttachments();
-  }, []);
+  }, [projectId]);
 
   async function fetchAttachments() {
+    if (!projectId) return;
     setLoading(true);
     const data = await getAttachments(projectId);
     setAttachments(data);

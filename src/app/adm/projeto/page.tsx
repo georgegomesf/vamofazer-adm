@@ -24,6 +24,7 @@ import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import Button from "@/components/ui/button/Button";
 import { getProject, updateProject } from "@/actions/project";
 import { uploadImage, deleteImage } from "@/actions/upload";
+import { useProject as useProjectContext } from "@/context/ProjectContext";
 
 interface ProjectData {
   id: string;
@@ -120,13 +121,14 @@ export default function ProjetoPage() {
     })
   );
 
-  const projectId = process.env.NEXT_PUBLIC_PROJECT_ID as string;
+  const { projectId } = useProjectContext();
 
   useEffect(() => {
     fetchProject();
-  }, []);
+  }, [projectId]);
 
   async function fetchProject() {
+    if (!projectId) return;
     setLoading(true);
     const data = await getProject(projectId);
     if (data) {

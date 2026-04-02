@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Button from "@/components/ui/button/Button";
 import { createAttachment, updateAttachment } from "@/actions/attachments";
 import { getAttachmentTypeFromUrl } from "@/lib/attachment-utils";
+import { useProject } from "@/context/ProjectContext";
 
 interface AttachmentEditorProps {
   attachment?: any; // If provided, it's edit mode
@@ -23,7 +24,7 @@ export default function AttachmentEditor({ attachment }: AttachmentEditorProps) 
     url: "",
   });
 
-  const projectId = process.env.NEXT_PUBLIC_PROJECT_ID as string;
+  const { projectId } = useProject();
 
   useEffect(() => {
     if (attachment) {

@@ -9,6 +9,7 @@ import Pagination from "@/components/ui/pagination/Pagination";
 import { Modal } from "@/components/ui/modal";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { useProject } from "@/context/ProjectContext";
 
 export default function AnpofPage() {
   const [search, setSearch] = useState("");
@@ -21,13 +22,14 @@ export default function AnpofPage() {
   const [viewEvent, setViewEvent] = useState<any | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
-  const projectId = process.env.NEXT_PUBLIC_PROJECT_ID as string;
+  const { projectId } = useProject();
 
   useEffect(() => {
     fetchEvents();
-  }, []);
+  }, [projectId]);
 
   async function fetchEvents() {
+    if (!projectId) return;
     setLoading(true);
     const data = await getAnpofEvents(projectId);
     setEvents(data);
