@@ -15,10 +15,11 @@ function AuthCallbackContent() {
         const st = searchParams.get("st");
         const dest = searchParams.get("dest") || "/";
         const silent = searchParams.get("silent") === "1";
+        const chained = searchParams.get("chained") === "1";
 
         if (st) {
             if (silent) {
-                // Modo SSO iframe: cria sessão sem redirecionar
+                // Modo SSO iframe: cria sessão sem redirecionar (agora obsoleto, mas seguro deixar)
                 signIn("token-transfer", { st, redirect: false });
             } else {
                 // Login normal: cria sessão, sincroniza com Web e redireciona
@@ -29,8 +30,9 @@ function AuthCallbackContent() {
                         return;
                     }
                     const webUrl = process.env.NEXT_PUBLIC_WEB_SERVICE_URL;
-                    if (webUrl) {
-                        await syncSessionToPeer(webUrl, "/");
+                    if (webUrl && !chained) {
+                        await syncSessionToPeer(webUrl, dest);
+                        return; // return so window.location.href below doesn't execute out of order
                     }
                     window.location.href = dest;
                 }).catch(err => {

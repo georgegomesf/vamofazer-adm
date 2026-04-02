@@ -22,30 +22,19 @@ export async function syncSessionToPeer(peerUrl: string, dest = "/"): Promise<vo
 
         // Usa um img pixel invisível para acionar o callback sem sair da página atual.
         // O redirect:false no signIn do peer garante que a sessão é criada silenciosamente.
-        const callbackUrl = `${peerUrl}/auth/callback?st=${encodeURIComponent(st)}&dest=${encodeURIComponent(dest)}&silent=1`;
+        // Força redirecionamento primário em vez de iframe
+        // Isso burla o Intelligent Tracking Prevention (ITP) do Safari e cookies de terceiros cross-domain
+        let absoluteDest = dest;
+        if (dest.startsWith("/")) {
+            absoluteDest = window.location.origin + dest;
+        }
 
-        await new Promise<void>((resolve) => {
-            const iframe = document.createElement("iframe");
-            iframe.style.display = "none";
-            iframe.style.width = "0";
-            iframe.style.height = "0";
-            
-            const timer = setTimeout(() => {
-                try { document.body.removeChild(iframe); } catch(e){}
-                resolve();
-            }, 3000);
+        const callbackUrl = `${peerUrl}/auth/callback?st=${encodeURIComponent(st)}&dest=${encodeURIComponent(absoluteDest)}&chained=1`;
+        
+        window.location.href = callbackUrl;
 
-            iframe.onload = () => {
-                clearTimeout(timer);
-                resolve();
-                setTimeout(() => {
-                    try { document.body.removeChild(iframe); } catch(e){}
-                }, 1000);
-            };
-
-            iframe.src = callbackUrl;
-            document.body.appendChild(iframe);
-        });
+        // Pendura a execução infinitamente para garantir que o redirecionamento acabe
+        await new Promise(() => {});
     } catch (err) {
         console.warn("[SSO] Falha ao sincronizar sessão com peer:", err);
     }
