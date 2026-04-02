@@ -13,6 +13,8 @@ const AppHeader: React.FC = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  const availableProjects = projects.filter(p => p.role === "admin" || p.role === "manager" || p.role === "editor");
+
   const handleToggle = () => {
     if (window.innerWidth >= 1024) {
       toggleSidebar();
@@ -73,7 +75,7 @@ const AppHeader: React.FC = () => {
 
         <div className="flex items-center gap-2 sm:gap-4">
           {/* Project Switcher */}
-          {projects.length > 1 && (
+          {availableProjects.length > 0 && (
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setDropdownOpen((prev) => !prev)}
@@ -81,13 +83,13 @@ const AppHeader: React.FC = () => {
                 title="Trocar de projeto"
               >
                 <Layers className="w-4 h-4 flex-shrink-0 text-brand-500" />
-                <span className="truncate max-w-[140px]">
+                <span className="hidden sm:block truncate max-w-[140px]">
                   {loading
                     ? "Carregando..."
                     : project?.name ?? "Selecionar Projeto"}
                 </span>
                 <ChevronDown
-                  className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""}`}
+                  className={`hidden sm:block w-4 h-4 flex-shrink-0 transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""}`}
                 />
               </button>
 
@@ -99,7 +101,7 @@ const AppHeader: React.FC = () => {
                     </p>
                   </div>
                   <ul className="py-1.5 max-h-72 overflow-y-auto">
-                    {projects.map((p) => {
+                    {availableProjects.map((p) => {
                       const isActive = p.id === projectId;
                       return (
                         <li key={p.id}>

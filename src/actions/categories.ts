@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { deleteImage } from "./upload";
 import { revalidatePath } from "next/cache";
+import { getWallClockNow } from "@/lib/date-utils";
 
 export async function getCategories(projectId: string) {
   try {
@@ -41,6 +42,8 @@ export async function createCategory(projectId: string, data: any) {
         dominantType: dominantType ?? "DEFAULT",
         dateFormat: dateFormat ?? "DEFAULT",
         projectId,
+        createdAt: getWallClockNow(),
+        updatedAt: getWallClockNow(),
       },
     });
     revalidatePath("/adm/categories");
@@ -69,7 +72,8 @@ export async function updateCategory(id: string, data: any) {
         type,
         viewType,
         dominantType,
-        dateFormat
+        dateFormat,
+        updatedAt: getWallClockNow(),
       },
     });
     revalidatePath("/adm/categories");

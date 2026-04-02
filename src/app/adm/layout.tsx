@@ -38,7 +38,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
 
   const userRole = (session.user as any)?.role;
   const projectRole = contextProjectRole || (session.user as any)?.projectRole;
-  
+
   const isAdmin = userRole === "ADMIN" || projectRole === "admin";
   const isManager = projectRole === "manager";
   const isEditor = projectRole === "editor";
@@ -47,9 +47,9 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   const isProjectRoute = pathname?.startsWith("/adm/projeto");
   const isSettingsRoute = pathname?.startsWith("/adm/projeto") || pathname?.startsWith("/adm/usuarios");
   const isResourcesRoute = pathname?.startsWith("/adm/attachments") || pathname?.startsWith("/adm/actions") || pathname?.startsWith("/adm/importar") || pathname?.startsWith("/adm/anpof");
-  
+
   // They can view the main list, but editing/creating library items is blocked for managers & editors.
-  const isLibraryEditRoute = 
+  const isLibraryEditRoute =
     (pathname?.startsWith("/adm/journals/") && pathname !== "/adm/journals") ||
     (pathname?.startsWith("/adm/issues/") && pathname !== "/adm/issues") ||
     (pathname?.startsWith("/adm/articles/") && pathname !== "/adm/articles");
@@ -78,11 +78,11 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
             </svg>
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2 dark:text-white">Selecione um Ambiente</h1>
-          <p className="text-gray-500 mb-8 dark:text-gray-400">
+          {/* <p className="text-gray-500 mb-8 dark:text-gray-400">
             {availableProjects.length > 0 
               ? "Você não possui acesso ao ambiente atual. Selecione abaixo um projeto que você gerencia para acessar:"
               : "Você ainda não tem acesso administrativo a nenhum de nossos ambientes. Contate o suporte para liberar sua conta."}
-          </p>
+          </p> */}
           <div className="flex flex-col gap-3">
             {availableProjects.map(p => (
               <button
@@ -93,7 +93,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
                 Acessar {p.name}
               </button>
             ))}
-            
+
             <button
               onClick={() => router.push("/auth/signout")}
               className="w-full flex items-center justify-center gap-2 bg-gray-900 hover:bg-black text-white px-6 py-3 rounded-xl transition-all font-semibold mt-4"

@@ -15,6 +15,7 @@ import QuickActionModal from "./QuickActionModal";
 import QuickLibraryModal from "./QuickLibraryModal";
 import { getJournals, getIssues, getArticles, getJournal, getIssue, getArticle, getTheses, getThesis } from "@/actions/library";
 import { createAttachment } from "@/actions/attachments";
+import { formatToLocalDatetime, parseLocalToWallClockUTC } from "@/lib/date-utils";
 
 interface PostEditorProps {
   post?: any; // If provided, it's edit mode
@@ -61,24 +62,6 @@ export default function PostEditor({ post, projectId }: PostEditorProps) {
 
   const hasImported = React.useRef(false);
 
-  // Local helper to format date for datetime-local input
-  const formatToLocalDatetime = (date: Date | string | null) => {
-    if (!date) return null;
-    try {
-      if (typeof date === 'string') {
-        // Assume API strings are stored exactly as the visual numbers we want, so just strip the trailing zeros.
-        return date.slice(0, 16);
-      }
-      // For Date objects (like new Date()), we need to shift the absolute time to a localized string.
-      const d = new Date(date);
-      if (isNaN(d.getTime())) return null;
-      const z = d.getTimezoneOffset() * 60 * 1000;
-      const localDate = new Date(d.getTime() - z);
-      return localDate.toISOString().slice(0, 16);
-    } catch (e) {
-      return null;
-    }
-  };
 
   useEffect(() => {
     fetchData();
@@ -477,19 +460,7 @@ export default function PostEditor({ post, projectId }: PostEditorProps) {
     setLoading(true);
 
     const pubAt = (explicitPublishedAt !== undefined ? explicitPublishedAt : formData.publishedAt) as string | null;
-    let publishedAtIso: string | null = null;
-    if (pubAt) {
-      try {
-        if (pubAt.length === 16 && !pubAt.includes("Z")) {
-          publishedAtIso = new Date(pubAt + ":00Z").toISOString();
-        } else {
-          publishedAtIso = new Date(pubAt).toISOString();
-        }
-      } catch (e) {
-        console.error("Invalid date:", pubAt);
-        publishedAtIso = null;
-      }
-    }
+    const publishedAtIso = parseLocalToWallClockUTC(pubAt);
 
     const submissionData = {
       ...formData,
@@ -562,8 +533,7 @@ export default function PostEditor({ post, projectId }: PostEditorProps) {
           {!post?.publishedAt ? (
             <Button
               onClick={async (e) => {
-                const now = new Date();
-                const nowStr = formatToLocalDatetime(now);
+                const nowStr = formatToLocalDatetime(new Date());
 
                 if (!nowStr) return;
 

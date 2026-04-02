@@ -5,6 +5,7 @@ import { deleteImage } from "./upload";
 import { revalidatePath } from "next/cache";
 import { createActivity } from "./activities";
 import { auth } from "@/auth";
+import { getWallClockNow } from "@/lib/date-utils";
 
 export async function getPosts(projectId: string, options: { page?: number; pageSize?: number; search?: string; status?: string; categoryId?: string } = {}) {
   const { page = 1, pageSize = 10, search = "", status = "all", categoryId = "all" } = options;
@@ -119,6 +120,8 @@ export async function createPost(projectId: string, data: any) {
         authorName,
         projectId,
         createdBy: userId,
+        createdAt: getWallClockNow(),
+        updatedAt: getWallClockNow(),
         categories: {
           create: categoryIds?.map((categoryId: string) => ({
             category: { connect: { id: categoryId } }
@@ -351,6 +354,7 @@ export async function updatePost(id: string, data: any) {
         publishedAt,
         authorName,
         updatedBy: userId,
+        updatedAt: getWallClockNow(),
         categories: {
           create: categoryIds?.map((categoryId: string) => ({
             category: { connect: { id: categoryId } }

@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { getWallClockNow } from "@/lib/date-utils";
 
 // Journals
 export async function getJournals() {
@@ -20,12 +21,12 @@ export async function getJournal(id: string) {
 
 export async function upsertJournal(data: any) {
   const { id, ...rest } = data;
-  if (!id) return await prisma.journal.create({ data: rest });
+  if (!id) return await prisma.journal.create({ data: { ...rest, createdAt: getWallClockNow(), updatedAt: getWallClockNow() } });
   
   const journal = await prisma.journal.upsert({
     where: { id },
-    update: rest,
-    create: { id, ...rest },
+    update: { ...rest, updatedAt: getWallClockNow() },
+    create: { id, ...rest, createdAt: getWallClockNow(), updatedAt: getWallClockNow() },
   });
   
   revalidatePath("/adm/journals");
@@ -72,12 +73,12 @@ export async function getIssue(id: string) {
 
 export async function upsertIssue(data: any) {
   const { id, ...rest } = data;
-  if (!id) return await prisma.issue.create({ data: rest });
+  if (!id) return await prisma.issue.create({ data: { ...rest, createdAt: getWallClockNow(), updatedAt: getWallClockNow() } });
 
   const issue = await prisma.issue.upsert({
     where: { id },
-    update: rest,
-    create: { id, ...rest },
+    update: { ...rest, updatedAt: getWallClockNow() },
+    create: { id, ...rest, createdAt: getWallClockNow(), updatedAt: getWallClockNow() },
   });
   
   revalidatePath("/adm/issues");
@@ -130,12 +131,12 @@ export async function getArticle(id: string) {
 
 export async function upsertArticle(data: any) {
   const { id, ...rest } = data;
-  if (!id) return await prisma.article.create({ data: rest });
+  if (!id) return await prisma.article.create({ data: { ...rest, createdAt: getWallClockNow(), updatedAt: getWallClockNow() } });
 
   const article = await prisma.article.upsert({
     where: { id },
-    update: rest,
-    create: { id, ...rest },
+    update: { ...rest, updatedAt: getWallClockNow() },
+    create: { id, ...rest, createdAt: getWallClockNow(), updatedAt: getWallClockNow() },
   });
   
   revalidatePath("/adm/articles");
@@ -179,12 +180,12 @@ export async function getThesis(id: string) {
 
 export async function upsertThesis(data: any) {
   const { id, ...rest } = data;
-  if (!id) return await prisma.thesis.create({ data: rest });
+  if (!id) return await prisma.thesis.create({ data: { ...rest, createdAt: getWallClockNow(), updatedAt: getWallClockNow() } });
 
   const thesis = await prisma.thesis.upsert({
     where: { id },
-    update: rest,
-    create: { id, ...rest },
+    update: { ...rest, updatedAt: getWallClockNow() },
+    create: { id, ...rest, createdAt: getWallClockNow(), updatedAt: getWallClockNow() },
   });
   
   revalidatePath("/adm/theses");

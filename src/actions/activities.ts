@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { pusherServer } from "@/lib/pusher";
+import { getWallClockNow } from "@/lib/date-utils";
 
 export type ActivityType = "POST_PUBLISHED" | "ACTION_LINKED" | "ATTACHMENT_LINKED" | "LIST_CREATED" | "ITEM_ADDED" | "NOTICE" | "JOURNAL_LINKED" | "ISSUE_LINKED" | "ARTICLE_LINKED" | "THESIS_LINKED";
 
@@ -18,6 +19,7 @@ export async function createActivity(projectId: string, data: {
       data: {
         ...data,
         projectId,
+        createdAt: getWallClockNow(),
       },
       include: {
         user: {

@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { getWallClockNow } from "@/lib/date-utils";
 
 export async function getActions(projectId: string) {
   try {
@@ -42,6 +43,8 @@ export async function createAction(projectId: string, data: any) {
         projectId,
         startDate: data.startDate ? new Date(data.startDate) : null,
         endDate: data.endDate ? new Date(data.endDate) : null,
+        createdAt: getWallClockNow(),
+        updatedAt: getWallClockNow(),
       },
     });
     console.log("Server: Action created successfully:", action.id);
@@ -62,6 +65,7 @@ export async function updateAction(id: string, data: any) {
         ...data,
         startDate: data.startDate ? new Date(data.startDate) : null,
         endDate: data.endDate ? new Date(data.endDate) : null,
+        updatedAt: getWallClockNow(),
       },
     });
     console.log("Server: Action updated successfully:", action.id);

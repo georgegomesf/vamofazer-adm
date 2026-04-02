@@ -7,6 +7,7 @@ import Button from "@/components/ui/button/Button";
 import { createAction, updateAction } from "@/actions/actions";
 import { uploadImage } from "@/actions/upload";
 import { useProject } from "@/context/ProjectContext";
+import { formatToLocalDatetime, parseLocalToWallClockUTC } from "@/lib/date-utils";
 
 interface ActionEditorProps {
   action?: any; // If provided, it's edit mode
@@ -30,12 +31,6 @@ export default function ActionEditor({ action }: ActionEditorProps) {
 
   const { projectId } = useProject();
 
-  const formatToLocalDatetime = (dateString?: string) => {
-    if (!dateString) return "";
-    const date = new Date(dateString);
-    const pad = (n: number) => n.toString().padStart(2, '0');
-    return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())}T${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}`;
-  };
 
   useEffect(() => {
     if (action) {
@@ -82,8 +77,8 @@ export default function ActionEditor({ action }: ActionEditorProps) {
       let result;
       const submissionData = {
         ...formData,
-        startDate: formData.startDate ? new Date(formData.startDate + (formData.startDate.includes("Z") ? "" : "-03:00")).toISOString() : null,
-        endDate: formData.endDate ? new Date(formData.endDate + (formData.endDate.includes("Z") ? "" : "-03:00")).toISOString() : null,
+        startDate: parseLocalToWallClockUTC(formData.startDate),
+        endDate: parseLocalToWallClockUTC(formData.endDate),
       };
 
       if (action) {
