@@ -24,7 +24,7 @@ export async function GET(request: Request) {
     // Segurança: Somente Admins podem ver atividades não-públicas (rascunhos)
     const session = await auth();
     const user = session?.user as any;
-    const isAdmin = user?.role === "ADMIN" || user?.projectRole === "ADMIN";
+    const isAdmin = user?.role === "ADMIN" || user?.projectRole === "admin";
     
     if (!isAdmin) {
       publicOnly = true;

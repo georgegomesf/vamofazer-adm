@@ -14,10 +14,12 @@ export async function GET() {
 
     // ADMIN users have access to all projects
     if (userRole === "ADMIN") {
-      const projects = await prisma.project.findMany({
+      const dbProjects = await prisma.project.findMany({
         select: { id: true, name: true, logoUrl: true, logoHorizontalUrl: true, link: true },
         orderBy: { name: "asc" },
       });
+      // Map to include global admin role (lowercase as requested)
+      const projects = dbProjects.map(p => ({ ...p, role: "admin" }));
       return NextResponse.json({ projects });
     }
 
@@ -35,7 +37,10 @@ export async function GET() {
       orderBy: { Project: { name: "asc" } },
     });
 
-    const projects = userProjects.map((up) => up.Project);
+    const projects = userProjects.map((up) => ({
+      ...up.Project,
+      role: up.role
+    }));
 
     return NextResponse.json({ projects });
   } catch (error: any) {

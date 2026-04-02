@@ -33,7 +33,7 @@ export async function GET(request: Request) {
     if (isPreview) {
       const session = await auth();
       const user = session?.user as any;
-      const isAdmin = user?.role === "ADMIN" || user?.projectRole === "ADMIN";
+      const isAdmin = user?.role === "ADMIN" || user?.projectRole === "admin";
       if (!isAdmin) {
         isPreview = false;
       }

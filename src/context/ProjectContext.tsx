@@ -13,11 +13,13 @@ export interface ProjectData {
   logoUrl: string | null;
   logoHorizontalUrl: string | null;
   link: string | null;
+  role: string | null;
 }
 
 interface ProjectContextType {
   project: ProjectData | null;
   projectId: string | null;
+  projectRole: string | null;
   projects: ProjectData[];
   loading: boolean;
   switchProject: (projectId: string) => void;
@@ -26,7 +28,7 @@ interface ProjectContextType {
 const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
 
 export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { status } = useSession();
+  const { data: session, status, update } = useSession();
   const [projects, setProjects] = useState<ProjectData[]>([]);
   const [projectId, setProjectId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -65,6 +67,18 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // Derive project object from the list — no extra fetch needed
   const project = projects.find((p) => p.id === projectId) ?? null;
+  const projectRole = project?.role ?? null;
+
+  // Sync session projectRole when project changes
+  useEffect(() => {
+    if (status === "authenticated" && projectRole && (session?.user as any)?.projectRole !== projectRole) {
+      update({
+        user: {
+          projectRole: projectRole
+        }
+      });
+    }
+  }, [projectRole, status, update, session]);
 
   // Persist project link so pages outside this provider (e.g. /auth/signout) can read it
   useEffect(() => {
@@ -79,7 +93,7 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, []);
 
   return (
-    <ProjectContext.Provider value={{ project, projectId, projects, loading, switchProject }}>
+    <ProjectContext.Provider value={{ project, projectId, projectRole, projects, loading, switchProject }}>
       {children}
     </ProjectContext.Provider>
   );

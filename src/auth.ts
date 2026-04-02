@@ -117,6 +117,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 if (session.user.image) token.image = session.user.image;
                 // @ts-ignore
                 if (session.user.image) token.picture = session.user.image;
+                // @ts-ignore
+                if (session.user.projectRole) token.projectRole = session.user.projectRole;
             }
 
             return token;
@@ -130,16 +132,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
     cookies: {
         sessionToken: {
-            name: "redefilosofica-adm.session-token",
+            name: "redefilosofica.session-token",
             options: {
                 httpOnly: true,
                 sameSite: "lax",
                 path: "/",
                 secure: process.env.NODE_ENV === "production",
+                ...(process.env.NODE_ENV === "production" ? { domain: ".redefilosofica.com.br" } : {}),
             },
         },
         callbackUrl: {
-            name: "redefilosofica-adm.callback-url",
+            name: "redefilosofica.callback-url",
             options: {
                 httpOnly: true,
                 sameSite: "lax",
@@ -148,7 +151,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             },
         },
         csrfToken: {
-            name: "redefilosofica-adm.csrf-token",
+            name: "redefilosofica.csrf-token",
             options: {
                 httpOnly: true,
                 sameSite: "lax",
