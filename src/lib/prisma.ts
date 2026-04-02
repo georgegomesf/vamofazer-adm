@@ -7,7 +7,12 @@ const globalForPrisma = globalThis as unknown as {
 }
 
 function createPrismaClient() {
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL! })
+  const pool = new Pool({ 
+    connectionString: process.env.DATABASE_URL!,
+    max: 2, // Limite de 2 conexões por instância serverless
+    idleTimeoutMillis: 1000, // Encerra conexões ociosas em 1 segundo
+    connectionTimeoutMillis: 15000, // Espera até 15s antes de dar timeout
+  })
   // @ts-ignore - Minor pg type version mismatch, safe to ignore
   const adapter = new PrismaPg(pool)
   return new PrismaClient({ adapter })
