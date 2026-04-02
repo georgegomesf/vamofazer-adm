@@ -138,9 +138,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 sameSite: "lax",
                 path: "/",
                 secure: process.env.NODE_ENV === "production",
-                // Only set shared domain if we are on a redefilosofica.com.br hostname
-                // Or if configured explicitly in env.
-                ...(process.env.NODE_ENV === "production" && process.env.NEXT_PUBLIC_COOKIE_DOMAIN ? { domain: process.env.NEXT_PUBLIC_COOKIE_DOMAIN } : {}),
+                // Removida a trava de domain fixo para suportar múltiplos domínios (basefilosofica.com.br, etc)
+                // O navegador gravará o cookie para o host atual automaticamente.
             },
         },
         callbackUrl: {
