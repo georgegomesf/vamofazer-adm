@@ -70,6 +70,7 @@ export default function MenuItemModal({ isOpen, onClose, onSuccess, item, parent
   }, [item, parentId, isOpen]);
 
   async function fetchData() {
+    if (!projectId) return;
     const [cats, pts, allItems] = await Promise.all([
       getCategories(projectId),
       getPosts(projectId),
@@ -126,6 +127,10 @@ export default function MenuItemModal({ isOpen, onClose, onSuccess, item, parent
       if (item) {
         result = await updateMenuItem(item.id, submissionData);
       } else {
+        if (!projectId) {
+          alert("Projeto não selecionado.");
+          return;
+        }
         result = await createMenuItem(projectId, submissionData);
       }
 

@@ -207,6 +207,7 @@ export default function ProjetoPage() {
     setMessage(null);
 
     try {
+      if (!projectId) return;
       const result = await updateProject(projectId, project);
       if (result.success) {
         setMessage({ type: "success", text: "Projeto atualizado com sucesso!" });

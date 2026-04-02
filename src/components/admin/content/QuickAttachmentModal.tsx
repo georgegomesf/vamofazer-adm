@@ -47,6 +47,10 @@ export default function QuickAttachmentModal({ isOpen, onClose, onSuccess, allAt
     setLoading(true);
 
     try {
+      if (!projectId) {
+        alert("Projeto não selecionado.");
+        return;
+      }
       const result = await createAttachment(projectId, formData);
 
       if (result.success && result.attachment) {

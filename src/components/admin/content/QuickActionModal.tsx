@@ -47,6 +47,10 @@ export default function QuickActionModal({ isOpen, onClose, onSuccess, allAction
         endDate: formData.endDate ? new Date(formData.endDate + (formData.endDate.includes("Z") ? "" : "Z")).toISOString() : null,
       };
       
+      if (!projectId) {
+        alert("Projeto não selecionado.");
+        return;
+      }
       const result = await createAction(projectId, submissionData);
 
       if (result.success && result.action) {

@@ -62,6 +62,10 @@ export default function TagModal({ isOpen, onClose, onSuccess, tag }: TagModalPr
       if (tag) {
         result = await updateTag(tag.id, formData);
       } else {
+        if (!projectId) {
+          alert("Projeto não selecionado.");
+          return;
+        }
         result = await createTag(projectId, formData);
       }
 

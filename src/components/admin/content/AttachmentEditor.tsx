@@ -74,6 +74,10 @@ export default function AttachmentEditor({ attachment }: AttachmentEditorProps) 
       if (attachment) {
         result = await updateAttachment(attachment.id, formData);
       } else {
+        if (!projectId) {
+          alert("Projeto não selecionado.");
+          return;
+        }
         result = await createAttachment(projectId, formData);
       }
       console.log("Action result:", result);

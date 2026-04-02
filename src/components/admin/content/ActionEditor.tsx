@@ -89,6 +89,10 @@ export default function ActionEditor({ action }: ActionEditorProps) {
       if (action) {
         result = await updateAction(action.id, submissionData);
       } else {
+        if (!projectId) {
+          alert("Projeto não selecionado.");
+          return;
+        }
         result = await createAction(projectId, submissionData);
       }
 

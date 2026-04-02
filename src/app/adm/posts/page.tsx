@@ -32,6 +32,7 @@ export default function PostsPage() {
 
   useEffect(() => {
     async function loadCategories() {
+      if (!projectId) return;
       const data = await getCategories(projectId);
       setCategories(data);
     }
