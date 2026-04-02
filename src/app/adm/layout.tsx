@@ -9,7 +9,7 @@ import React, { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
 import { SessionProvider } from "next-auth/react";
-import { ProjectProvider } from "@/context/ProjectContext";
+import { ProjectProvider, useProject } from "@/context/ProjectContext";
 import "flatpickr/dist/flatpickr.css";
 
 function AdminLayoutInner({ children }: { children: React.ReactNode }) {
@@ -17,6 +17,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
   const router = useRouter();
   const pathname = usePathname();
+  const { projects, switchProject, projectRole: contextProjectRole, loading: projectLoading } = useProject();
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -24,8 +25,8 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     }
   }, [status, router]);
 
-  // Only show the loading state on initial mount if we don't have a session yet
-  if (status === "loading" && !session) {
+  // Only show the loading state on initial mount if we don't have a session yet or projects are loading
+  if ((status === "loading" && !session) || projectLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-white dark:bg-gray-900">
         <div className="text-gray-500">Carregando...</div>
@@ -36,7 +37,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   if (!session) return null;
 
   const userRole = (session.user as any)?.role;
-  const projectRole = (session.user as any)?.projectRole;
+  const projectRole = contextProjectRole || (session.user as any)?.projectRole;
   
   const isAdmin = userRole === "ADMIN" || projectRole === "admin";
   const isManager = projectRole === "manager";
@@ -64,33 +65,38 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   }
 
   if (!hasAccess) {
+    const availableProjects = projects?.filter(p => p.role === "admin" || p.role === "manager" || p.role === "editor") || [];
+
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 text-center dark:bg-gray-900">
         <div className="w-full max-w-md bg-white rounded-3xl p-10 shadow-xl border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
-          <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10 text-red-500">
+          <div className="w-20 h-20 bg-indigo-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10 text-indigo-500">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
               <line x1="12" y1="8" x2="12" y2="12"></line>
               <line x1="12" y1="16" x2="12.01" y2="16"></line>
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2 dark:text-white">Acesso Restrito</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2 dark:text-white">Selecione um Ambiente</h1>
           <p className="text-gray-500 mb-8 dark:text-gray-400">
-            Você ainda não tem acesso a este ambiente. <br />
-            Contate o administrador do sistema.
+            {availableProjects.length > 0 
+              ? "Você não possui acesso ao ambiente atual. Selecione abaixo um projeto que você gerencia para acessar:"
+              : "Você ainda não tem acesso administrativo a nenhum de nossos ambientes. Contate o suporte para liberar sua conta."}
           </p>
           <div className="flex flex-col gap-3">
-            {/* <div className="p-3 bg-gray-50 rounded-xl text-sm font-medium text-gray-700 dark:bg-gray-700 dark:text-gray-300">
-              Role: <span className="text-red-600 dark:text-red-400 font-bold">{userRole || "Visitante"}</span>
-              {projectRole && (
-                <span className="ml-2 border-l border-gray-300 pl-2 dark:border-gray-600">
-                  Projeto: <span className="text-red-600 dark:text-red-400 font-bold uppercase">{projectRole}</span>
-                </span>
-              )}
-            </div> */}
+            {availableProjects.map(p => (
+              <button
+                key={p.id}
+                onClick={() => switchProject(p.id)}
+                className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl transition-all font-semibold shadow-md"
+              >
+                Acessar {p.name}
+              </button>
+            ))}
+            
             <button
               onClick={() => router.push("/auth/signout")}
-              className="w-full flex items-center justify-center gap-2 bg-gray-900 hover:bg-black text-white px-6 py-3 rounded-xl transition-all font-semibold"
+              className="w-full flex items-center justify-center gap-2 bg-gray-900 hover:bg-black text-white px-6 py-3 rounded-xl transition-all font-semibold mt-4"
             >
               Sair da Conta
             </button>
