@@ -130,4 +130,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     pages: {
         signIn: "/signin",
     },
+    cookies: {
+        sessionToken: {
+            name: process.env.NODE_ENV === "production" ? "__Secure-authjs.session-token" : "authjs.session-token",
+            options: {
+                httpOnly: true,
+                sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+                path: "/",
+                secure: process.env.NODE_ENV === "production",
+                domain: process.env.NEXT_PUBLIC_COOKIE_DOMAIN || undefined,
+            },
+        },
+    },
 });

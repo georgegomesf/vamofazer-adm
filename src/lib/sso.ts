@@ -24,18 +24,28 @@ export async function syncSessionToPeer(peerUrl: string, dest = "/"): Promise<vo
         // O redirect:false no signIn do peer garante que a sessão é criada silenciosamente.
         const callbackUrl = `${peerUrl}/auth/callback?st=${encodeURIComponent(st)}&dest=${encodeURIComponent(dest)}&silent=1`;
 
-        // Abre em iframe oculto para não redirecionar o usuário
-        const iframe = document.createElement("iframe");
-        iframe.style.display = "none";
-        iframe.style.width = "0";
-        iframe.style.height = "0";
-        iframe.src = callbackUrl;
-        document.body.appendChild(iframe);
+        await new Promise<void>((resolve) => {
+            const iframe = document.createElement("iframe");
+            iframe.style.display = "none";
+            iframe.style.width = "0";
+            iframe.style.height = "0";
+            
+            const timer = setTimeout(() => {
+                try { document.body.removeChild(iframe); } catch(e){}
+                resolve();
+            }, 3000);
 
-        // Remove o iframe após 5 segundos
-        setTimeout(() => {
-            document.body.removeChild(iframe);
-        }, 5000);
+            iframe.onload = () => {
+                clearTimeout(timer);
+                resolve();
+                setTimeout(() => {
+                    try { document.body.removeChild(iframe); } catch(e){}
+                }, 1000);
+            };
+
+            iframe.src = callbackUrl;
+            document.body.appendChild(iframe);
+        });
     } catch (err) {
         console.warn("[SSO] Falha ao sincronizar sessão com peer:", err);
     }
