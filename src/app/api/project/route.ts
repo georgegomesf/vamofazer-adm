@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const projectId = searchParams.get("projectId") || process.env.NEXT_PUBLIC_PROJECT_ID;
+    const projectId = searchParams.get("projectId") || searchParams.get("id") || process.env.NEXT_PUBLIC_PROJECT_ID;
 
     if (!projectId) {
       return NextResponse.json({ error: "Missing projectId" }, { status: 400 });
