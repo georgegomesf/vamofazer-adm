@@ -213,6 +213,7 @@ model Category {
   imageUrl    String?
   projectId   String
   createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
   isVisible     Boolean        @default(true)
   type          String?        @default("Postagens")
   viewType      String         @default("grid")
