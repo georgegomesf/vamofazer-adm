@@ -47,6 +47,21 @@ export async function GET(request: Request) {
       }
     } : {};
 
+    // Parse date for search if applicable (Format: DD/MM/YYYY)
+    const dateRegex = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
+    const dateMatch = search?.match(dateRegex);
+    let dateRange: { start: Date; end: Date } | null = null;
+    if (dateMatch) {
+      const day = parseInt(dateMatch[1], 10);
+      const month = parseInt(dateMatch[2], 10) - 1;
+      const year = parseInt(dateMatch[3], 10);
+      const start = new Date(year, month, day, 0, 0, 0, 0);
+      const end = new Date(year, month, day, 23, 59, 59, 999);
+      if (!isNaN(start.getTime())) {
+        dateRange = { start, end };
+      }
+    }
+
     const where: any = {
       ...(projectId ? { projectId } : {}),
       ...publicationFilter,
@@ -56,6 +71,27 @@ export async function GET(request: Request) {
           { summary: { contains: search, mode: 'insensitive' } },
           { content: { contains: search, mode: 'insensitive' } },
           { authorName: { contains: search, mode: 'insensitive' } },
+          ...(dateRange ? [
+            { publishedAt: { gte: dateRange.start, lte: dateRange.end } },
+            { 
+              actions: { 
+                some: { 
+                  action: { 
+                    OR: [
+                      { startDate: { gte: dateRange.start, lte: dateRange.end } },
+                      { endDate: { gte: dateRange.start, lte: dateRange.end } },
+                      {
+                        AND: [
+                          { startDate: { lte: dateRange.end } },
+                          { endDate: { gte: dateRange.start } }
+                        ]
+                      }
+                    ] 
+                  } 
+                } 
+              } 
+            }
+          ] : []),
           ...(dominantType === "LIBRARY" ? [
             { postArticles: { some: { article: { 
               OR: [
