@@ -62,6 +62,7 @@ export async function updateProject(id: string, data: any) {
         searchLabel: data.searchLabel,
         searchViewType: data.searchViewType,
         homeSectionOrder: data.homeSectionOrder,
+        theme: data.theme,
       },
     });
 

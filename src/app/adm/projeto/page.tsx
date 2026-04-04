@@ -50,6 +50,7 @@ interface ProjectData {
   searchViewType: string;
   homeSectionOrder: any;
   defaultThumbUrl: string | null;
+  theme: string;
 }
 
 const DEFAULT_HOME_ORDER = ["search", "hero", "newArrivals", "countdown", "bestSellers"];
@@ -147,6 +148,7 @@ export default function ProjetoPage() {
         searchViewType: data.searchViewType ?? "grid",
         homeSectionOrder: data.homeSectionOrder || DEFAULT_HOME_ORDER,
         defaultThumbUrl: data.defaultThumbUrl ?? null,
+        theme: data.theme ?? "light",
       } as any);
     }
     setLoading(false);
@@ -342,6 +344,18 @@ export default function ProjetoPage() {
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="md:col-span-2 space-y-2 mb-2">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Tema do Front-end</label>
+              <select
+                name="theme"
+                value={project.theme}
+                onChange={handleInputChange}
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none transition-all dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+              >
+                <option value="light">Claro</option>
+                <option value="dark">Escuro</option>
+              </select>
+            </div>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
@@ -351,7 +365,7 @@ export default function ProjetoPage() {
                   <button type="button" onClick={() => removeImage("logoUrl")} className="text-red-500 hover:text-red-600 text-xs font-medium">Excluir</button>
                 )}
               </div>
-              <div className="relative group aspect-square max-w-[200px] mx-auto overflow-hidden rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 flex items-center justify-center bg-gray-50 dark:bg-gray-800/50">
+              <div className={`relative group aspect-square max-w-[200px] mx-auto overflow-hidden rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 flex items-center justify-center ${project.theme === "dark" ? "bg-gray-900" : "bg-gray-50 dark:bg-gray-800/50"}`}>
                 {project.logoUrl ? (
                   <img src={project.logoUrl} alt="Logo Preview" className="w-full h-full object-contain p-4" />
                 ) : (
@@ -375,7 +389,7 @@ export default function ProjetoPage() {
                   <button type="button" onClick={() => removeImage("logoHorizontalUrl")} className="text-red-500 hover:text-red-600 text-xs font-medium">Excluir</button>
                 )}
               </div>
-              <div className="relative group aspect-video max-w-full overflow-hidden rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 flex items-center justify-center bg-gray-50 dark:bg-gray-800/50">
+              <div className={`relative group aspect-video max-w-full overflow-hidden rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 flex items-center justify-center ${project.theme === "dark" ? "bg-gray-900" : "bg-gray-50 dark:bg-gray-800/50"}`}>
                 {project.logoHorizontalUrl ? (
                   <img src={project.logoHorizontalUrl} alt="Logo Horizontal Preview" className="w-full h-full object-contain p-4" />
                 ) : (
@@ -411,6 +425,31 @@ export default function ProjetoPage() {
                     <Upload className="h-4 w-4" /> Alterar Capa
                   </div>
                   <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, "coverUrl")} className="hidden" />
+                </label>
+              </div>
+            </div>
+
+            <div className="space-y-4 md:col-span-2">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Background do Projeto</label>
+                {project.backgroundUrl && (
+                  <button type="button" onClick={() => removeImage("backgroundUrl")} className="text-red-500 hover:text-red-600 text-xs font-medium">Excluir</button>
+                )}
+              </div>
+              <div className="relative group aspect-[21/9] w-full overflow-hidden rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 flex items-center justify-center bg-gray-50 dark:bg-gray-800/50">
+                {project.backgroundUrl ? (
+                  <img src={project.backgroundUrl} alt="Background Preview" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="text-center">
+                    <ImageIcon className="h-10 w-10 text-gray-300 mx-auto mb-2" />
+                    <span className="text-xs text-gray-400">Recomendado: 1920x1080px</span>
+                  </div>
+                )}
+                <label className="absolute inset-0 cursor-pointer flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="bg-white px-4 py-2 rounded-xl shadow-lg flex items-center gap-2 font-medium">
+                    <Upload className="h-4 w-4" /> Alterar Background
+                  </div>
+                  <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, "backgroundUrl")} className="hidden" />
                 </label>
               </div>
             </div>

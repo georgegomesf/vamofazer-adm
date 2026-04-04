@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export async function generateMetadata(): Promise<Metadata> {
   const projectId = process.env.NEXT_PUBLIC_PROJECT_ID;
-  let projectName = "Portaria Digital";
+  let projectName = "";
 
   if (projectId) {
     try {
@@ -24,7 +24,7 @@ export async function generateMetadata(): Promise<Metadata> {
       if (project.name) {
         projectName = project.name;
       }
-    } catch (e) {}
+    } catch (e) { }
   }
 
   return {

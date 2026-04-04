@@ -15,7 +15,7 @@ export async function GET() {
     // ADMIN users have access to all projects
     if (userRole === "ADMIN") {
       const dbProjects = await prisma.project.findMany({
-        select: { id: true, name: true, logoUrl: true, logoHorizontalUrl: true, link: true },
+        select: { id: true, name: true, logoUrl: true, logoHorizontalUrl: true, link: true, theme: true },
         orderBy: { name: "asc" },
       });
       // Map to include global admin role (lowercase as requested)
@@ -31,7 +31,7 @@ export async function GET() {
       },
       include: {
         Project: {
-          select: { id: true, name: true, logoUrl: true, logoHorizontalUrl: true, link: true },
+          select: { id: true, name: true, logoUrl: true, logoHorizontalUrl: true, link: true, theme: true },
         },
       },
       orderBy: { Project: { name: "asc" } },

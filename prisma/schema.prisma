@@ -103,10 +103,10 @@ model Invitation {
   maxUses          Int?
   currentUses      Int              @default(0)
   expiresAt        DateTime?
-  isUsed           Boolean          @default(false)
   createdAt        DateTime         @default(now())
   targetNames      String?
   targetUserId     String?
+  isUsed           Boolean          @default(false)
   Group            Group            @relation(fields: [groupId], references: [id], onDelete: Cascade)
 }
 
@@ -138,9 +138,23 @@ model Project {
   backgroundUrl     String?
   logoHorizontalUrl String?
   link              String?
-  email             String?
-  defaultEntryRole  String        @default("visitor")
-  createdAt         DateTime      @default(now())
+  email              String?
+  defaultEntryRole   String        @default("visitor")
+  defaultThumbUrl    String?
+  heroVisible        Boolean       @default(false)
+  newArrivalsVisible Boolean       @default(false)
+  countdownVisible   Boolean       @default(false)
+  bestSellersVisible Boolean       @default(false)
+  searchVisible      Boolean       @default(true)
+  heroLabel          String?
+  newArrivalsLabel   String?
+  countdownLabel     String?
+  bestSellersLabel   String?
+  searchLabel        String?
+  searchViewType     String?       @default("grid")
+  homeSectionOrder   Json?
+  theme              String?       @default("light")
+  createdAt          DateTime      @default(now())
   updatedAt         DateTime
   Action            Action[]
   Group             Group[]

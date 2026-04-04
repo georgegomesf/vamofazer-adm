@@ -168,7 +168,7 @@ const AppSidebar: React.FC = () => {
       >
         <Link href="/">
           {isExpanded || isHovered || isMobileOpen ? (
-            <div className="flex items-center">
+            <div className={`flex items-center ${project?.theme === "dark" && project?.logoHorizontalUrl ? "bg-gray-900 p-2 rounded-xl" : ""}`}>
               {project?.logoHorizontalUrl ? (
                 <img
                   src={project.logoHorizontalUrl}
@@ -195,20 +195,22 @@ const AppSidebar: React.FC = () => {
               )}
             </div>
           ) : (
-            project?.logoUrl ? (
-              <img
-                src={project.logoUrl}
-                alt={project.name || "Logo"}
-                className="w-8 h-8 object-contain"
-              />
-            ) : (
-              <Image
-                src="/images/logo/logo-icon.svg"
-                alt="Logo"
-                width={32}
-                height={32}
-              />
-            )
+            <div className={`flex justify-center items-center w-10 h-10 ${project?.theme === "dark" && project?.logoUrl ? "bg-gray-900 p-1.5 rounded-lg" : ""}`}>
+              {project?.logoUrl ? (
+                <img
+                  src={project.logoUrl}
+                  alt={project.name || "Logo"}
+                  className="w-full h-full object-contain"
+                />
+              ) : (
+                <Image
+                  src="/images/logo/logo-icon.svg"
+                  alt="Logo"
+                  width={32}
+                  height={32}
+                />
+              )}
+            </div>
           )}
         </Link>
       </div>

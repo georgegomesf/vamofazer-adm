@@ -14,6 +14,7 @@ export interface ProjectData {
   logoHorizontalUrl: string | null;
   link: string | null;
   role: string | null;
+  theme?: string | null;
 }
 
 interface ProjectContextType {
