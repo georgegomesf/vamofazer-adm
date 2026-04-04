@@ -23,33 +23,11 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   {
-    icon: <DocsIcon />,
-    name: "Conteúdo",
-    subItems: [
-      { name: "Postagens", path: "/adm/posts" },
-      { name: "Categorias", path: "/adm/categories" },
-      { name: "Etiquetas", path: "/adm/tags" },
-      { name: "Menu Principal", path: "/adm/main_menu" },
-    ],
-  },
-  {
     icon: <GridIcon />,
     name: "Recursos",
     subItems: [
-      { name: "Anexos", path: "/adm/attachments" },
       { name: "Ações", path: "/adm/actions" },
-      { name: "Importar", path: "/adm/importar" },
-      { name: "Eventos - Anpof", path: "/adm/anpof" },
-    ],
-  },
-  {
-    icon: <PageIcon />,
-    name: "Biblioteca",
-    subItems: [
-      { name: "Revistas", path: "/adm/journals" },
-      { name: "Edições", path: "/adm/issues" },
-      { name: "Artigos", path: "/adm/articles" },
-      { name: "Teses e Dissertações", path: "/adm/theses" },
+      { name: "Grupos", path: "/adm/groups" },
     ],
   },
   {

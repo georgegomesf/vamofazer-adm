@@ -2,17 +2,11 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { getWallClockNow } from "@/lib/date-utils";
 
 export async function getActions(projectId: string) {
   try {
     const actions = await prisma.action.findMany({
       where: { projectId },
-      include: {
-        _count: {
-          select: { posts: true }
-        }
-      },
       orderBy: { createdAt: "desc" },
     });
     return actions;
@@ -26,6 +20,11 @@ export async function getActionById(id: string) {
   try {
     const action = await prisma.action.findUnique({
       where: { id },
+      include: {
+        ActionGroup: {
+          include: { Group: true }
+        }
+      }
     });
     return action;
   } catch (error) {
@@ -35,19 +34,21 @@ export async function getActionById(id: string) {
 }
 
 export async function createAction(projectId: string, data: any) {
-  console.log("Server: Creating action...", { projectId, data });
   try {
+    const { groups, ...actionData } = data;
     const action = await prisma.action.create({
       data: {
-        ...data,
+        ...actionData,
         projectId,
-        startDate: data.startDate ? new Date(data.startDate) : null,
-        endDate: data.endDate ? new Date(data.endDate) : null,
-        createdAt: getWallClockNow(),
-        updatedAt: getWallClockNow(),
+        id: Math.random().toString(36).substring(2, 11),
+        startDate: actionData.startDate ? new Date(actionData.startDate) : null,
+        endDate: actionData.endDate ? new Date(actionData.endDate) : null,
+        updatedAt: new Date(),
+        ActionGroup: groups ? {
+          create: groups.map((groupId: string) => ({ groupId }))
+        } : undefined
       },
     });
-    console.log("Server: Action created successfully:", action.id);
     revalidatePath("/adm/actions");
     return { success: true, action };
   } catch (error: any) {
@@ -57,18 +58,27 @@ export async function createAction(projectId: string, data: any) {
 }
 
 export async function updateAction(id: string, data: any) {
-  console.log("Server: Updating action...", id);
   try {
+    const { groups, ...actionData } = data;
+    
+    if (groups !== undefined) {
+      await prisma.actionGroup.deleteMany({ where: { actionId: id } });
+      if (groups.length > 0) {
+          await prisma.actionGroup.createMany({
+            data: groups.map((groupId: string) => ({ actionId: id, groupId }))
+          });
+      }
+    }
+
     const action = await prisma.action.update({
       where: { id },
       data: {
-        ...data,
-        startDate: data.startDate ? new Date(data.startDate) : null,
-        endDate: data.endDate ? new Date(data.endDate) : null,
-        updatedAt: getWallClockNow(),
+        ...actionData,
+        startDate: actionData.startDate ? new Date(actionData.startDate) : null,
+        endDate: actionData.endDate ? new Date(actionData.endDate) : null,
+        updatedAt: new Date(),
       },
     });
-    console.log("Server: Action updated successfully:", action.id);
     revalidatePath("/adm/actions");
     return { success: true, action };
   } catch (error: any) {

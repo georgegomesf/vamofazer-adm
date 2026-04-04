@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client'
+// Force re-bundling to pick up new schema fields (isUsed)
 import { Pool } from 'pg'
 import { PrismaPg } from '@prisma/adapter-pg'
 

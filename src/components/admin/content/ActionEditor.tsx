@@ -7,6 +7,7 @@ import Button from "@/components/ui/button/Button";
 import { createAction, updateAction } from "@/actions/actions";
 import { uploadImage } from "@/actions/upload";
 import { useProject } from "@/context/ProjectContext";
+import { getGroups } from "@/actions/groups";
 import { formatToLocalDatetime, parseLocalToWallClockUTC } from "@/lib/date-utils";
 
 interface ActionEditorProps {
@@ -23,14 +24,24 @@ export default function ActionEditor({ action }: ActionEditorProps) {
     description: "",
     type: "Atividade",
     imageUrl: "",
+    backgroundUrl: "",
     organizer: "",
     url: "",
     startDate: "",
     endDate: "",
   });
+  
+  const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
+  const [availableGroups, setAvailableGroups] = useState<any[]>([]);
 
   const { projectId } = useProject();
 
+
+  useEffect(() => {
+    if (projectId) {
+      getGroups(projectId).then(groups => setAvailableGroups(groups || []));
+    }
+  }, [projectId]);
 
   useEffect(() => {
     if (action) {
@@ -39,11 +50,15 @@ export default function ActionEditor({ action }: ActionEditorProps) {
         description: action.description || "",
         type: action.type || "Atividade",
         imageUrl: action.imageUrl || "",
+        backgroundUrl: action.backgroundUrl || "",
         organizer: action.organizer || "",
         url: action.url || "",
         startDate: formatToLocalDatetime(action.startDate),
         endDate: formatToLocalDatetime(action.endDate),
       });
+      if (action.ActionGroup) {
+          setSelectedGroups(action.ActionGroup.map((ag: any) => ag.groupId));
+      }
     }
   }, [action]);
 
@@ -70,15 +85,40 @@ export default function ActionEditor({ action }: ActionEditorProps) {
     }
   };
 
+  const handleBackgroundUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const result = await uploadImage(form);
+      setFormData(prev => ({ ...prev, backgroundUrl: result.url }));
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      alert("Erro ao enviar imagem de fundo.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleGroupToggle = (groupId: string) => {
+      setSelectedGroups(prev => 
+          prev.includes(groupId) ? prev.filter(id => id !== groupId) : [...prev, groupId]
+      );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     if (e) e.preventDefault();
     setLoading(true);
     try {
       let result;
-      const submissionData = {
+      const submissionData: any = {
         ...formData,
         startDate: parseLocalToWallClockUTC(formData.startDate),
         endDate: parseLocalToWallClockUTC(formData.endDate),
+        groups: selectedGroups
       };
 
       if (action) {
@@ -282,6 +322,55 @@ export default function ActionEditor({ action }: ActionEditorProps) {
                     placeholder="https://..."
                     className="w-full px-4 py-2 text-sm rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none transition-all dark:bg-gray-800 dark:border-gray-700 dark:text-white mt-1"
                   />
+                </div>
+              </div>
+
+              <div className="space-y-2 mt-6 border-t border-gray-100 dark:border-gray-800 pt-6">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Imagem de Fundo (Capa)</label>
+                <div className="aspect-video relative rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 flex items-center justify-center overflow-hidden transition-all hover:bg-gray-100 dark:hover:bg-gray-800">
+                  {isUploading ? (
+                    <Loader2 className="h-8 w-8 text-brand-500 animate-spin" />
+                  ) : formData.backgroundUrl ? (
+                    <div className="group relative w-full h-full">
+                      <img src={formData.backgroundUrl} alt="Preview Background" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, backgroundUrl: "" }))}
+                        className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="cursor-pointer text-center p-4 w-full h-full flex flex-col items-center justify-center">
+                      <ImageIcon className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                      <span className="text-xs text-gray-400">Upload Imagem de Fundo</span>
+                      <input type="file" className="hidden" accept="image/*" onChange={handleBackgroundUpload} />
+                    </label>
+                  )}
+                </div>
+              </div>
+              
+              <div className="space-y-2 mt-6 border-t border-gray-100 dark:border-gray-800 pt-6">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Vincular a Grupos</label>
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 max-h-48 overflow-y-auto space-y-2">
+                    {availableGroups.length > 0 ? (
+                        availableGroups.map(group => (
+                            <label key={group.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
+                                <input 
+                                    type="checkbox" 
+                                    checked={selectedGroups.includes(group.id)}
+                                    onChange={() => handleGroupToggle(group.id)}
+                                    className="rounded border-gray-300 text-brand-500 focus:ring-brand-500"
+                                />
+                                <div className="flex flex-col">
+                                    <span className="text-sm font-medium text-gray-900 dark:text-white">{group.name}</span>
+                                </div>
+                            </label>
+                        ))
+                    ) : (
+                        <p className="text-sm text-gray-500 p-2">Nenhum grupo cadastrado.</p>
+                    )}
                 </div>
               </div>
             </div>

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Plus, Search, Calendar, Edit, Trash2, Loader2, Clock, CheckCircle2, ListTodo } from "lucide-react";
+import { Plus, Search, Calendar, Edit, Trash2, Loader2, ArrowRight } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import { getActions, deleteAction } from "@/actions/actions";
 import DeleteModal from "@/components/admin/content/DeleteModal";
@@ -43,6 +43,7 @@ export default function ActionsPage() {
 
   const filteredActions = actions.filter(a =>
     a.title.toLowerCase().includes(search.toLowerCase()) ||
+    (a.description?.toLowerCase().includes(search.toLowerCase())) ||
     a.type.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -55,17 +56,9 @@ export default function ActionsPage() {
     setCurrentPage(1);
   }, [search]);
 
-  const getActionIcon = (type: string) => {
-    switch (type) {
-      case 'Evento':
-        return <Calendar className="h-5 w-5 text-blue-500" />;
-      case 'Prazo':
-        return <Clock className="h-5 w-5 text-red-500" />;
-      case 'Atividade':
-        return <ListTodo className="h-5 w-5 text-emerald-500" />;
-      default:
-        return <CheckCircle2 className="h-5 w-5 text-gray-400" />;
-    }
+  const formatDate = (date: Date | string | null) => {
+    if (!date) return "-";
+    return new Date(date).toLocaleDateString();
   };
 
   return (
@@ -73,7 +66,7 @@ export default function ActionsPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Ações</h1>
-          <p className="text-gray-500 dark:text-gray-400">Gerencie eventos, prazos e atividades vinculadas às suas postagens.</p>
+          <p className="text-gray-500 dark:text-gray-400">Gerencie ações estratégicas, eventos e convites do projeto.</p>
         </div>
         <Link href="/adm/actions/new">
           <Button className="flex items-center gap-2">
@@ -88,7 +81,7 @@ export default function ActionsPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Buscar pelo título ou tipo..."
+              placeholder="Buscar pelo título..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none transition-all dark:bg-gray-800/50 dark:border-gray-700 dark:text-white"
@@ -101,16 +94,15 @@ export default function ActionsPage() {
             <thead className="bg-gray-50 text-gray-600 dark:bg-gray-800/50 dark:text-gray-400">
               <tr>
                 <th className="px-6 py-4 font-medium min-w-[240px]">Ação</th>
-                <th className="px-6 py-4 font-medium">Tipo</th>
-                <th className="px-6 py-4 font-medium">Data/Hora</th>
-                <th className="px-6 py-4 font-medium text-center">Vínculos</th>
+                <th className="px-6 py-4 font-medium text-center">Tipo</th>
+                <th className="px-6 py-4 font-medium text-center">Período</th>
                 <th className="px-6 py-4 font-medium text-right w-20">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={4} className="px-6 py-12 text-center text-gray-500">
                     <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2 text-brand-500" />
                     Carregando ações...
                   </td>
@@ -119,45 +111,36 @@ export default function ActionsPage() {
                 <tr key={action.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 flex-shrink-0 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center overflow-hidden">
+                      <div className="h-10 w-10 flex-shrink-0 rounded-lg flex items-center justify-center overflow-hidden bg-brand-100 text-brand-600">
                         {action.imageUrl ? (
                           <img src={action.imageUrl} className="h-full w-full object-cover" />
                         ) : (
-                          getActionIcon(action.type)
+                          <Calendar className="h-5 w-5" />
                         )}
                       </div>
-                      <div className="font-medium text-gray-900 dark:text-white max-w-[160px] md:max-w-xs lg:max-w-sm truncate" title={action.title}>
-                        {action.title}
+                      <div>
+                        <div className="font-medium text-gray-900 dark:text-white">
+                          {action.title}
+                        </div>
+                         {action.organizer && (
+                          <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                            Org: <span className="text-gray-500">{action.organizer}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
-                      ${action.type === 'Evento' ? 'bg-blue-100 text-blue-800 dark:bg-blue-500/10 dark:text-blue-300' : 
-                        action.type === 'Prazo' ? 'bg-red-100 text-red-800 dark:bg-red-500/10 dark:text-red-300' : 
-                        'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-300'}`}>
+                  <td className="px-6 py-4 text-center">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300">
                       {action.type}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-gray-500 whitespace-nowrap">
-                    <div className="flex flex-col text-xs">
-                      {action.startDate && (
-                        <span className="flex items-center gap-1">
-                          <span className="font-semibold uppercase text-[10px] text-gray-400 w-8">De:</span>
-                          {new Date(action.startDate).toLocaleString('pt-BR', { timeZone: 'UTC' })}
-                        </span>
-                      )}
-                      {action.endDate && (
-                        <span className="flex items-center gap-1 mt-0.5">
-                          <span className="font-semibold uppercase text-[10px] text-gray-400 w-8">Até:</span>
-                          {new Date(action.endDate).toLocaleString('pt-BR', { timeZone: 'UTC' })}
-                        </span>
-                      )}
-                      {!action.startDate && !action.endDate && <span className="text-gray-400 italic">Sem data</span>}
+                  <td className="px-6 py-4 text-center">
+                    <div className="flex items-center justify-center gap-1 text-[10px] text-gray-500 font-bold">
+                       <span>{formatDate(action.startDate)}</span>
+                       <ArrowRight className="h-2 w-2" />
+                       <span>{formatDate(action.endDate)}</span>
                     </div>
-                  </td>
-                  <td className="px-6 py-4 text-gray-600 dark:text-gray-400 whitespace-nowrap text-center">
-                    <span className="font-medium text-xs bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full">{action._count?.posts || 0}</span>
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
@@ -176,8 +159,9 @@ export default function ActionsPage() {
             </tbody>
           </table>
           {!loading && filteredActions.length === 0 && (
-            <div className="py-12 text-center text-gray-500 dark:text-gray-400">
-              Nenhuma ação encontrada.
+            <div className="py-12 text-center text-gray-500 dark:text-gray-400 flex flex-col items-center gap-3">
+              <Calendar className="h-12 w-12 text-gray-200" />
+              <p>Nenhuma ação encontrada.</p>
             </div>
           )}
         </div>
@@ -197,7 +181,7 @@ export default function ActionsPage() {
         onClose={() => setDeleteId(null)}
         onConfirm={handleDelete}
         title="Excluir Ação"
-        description="Esta ação removerá permanentemente esta ação do seu projeto. Postagens vinculadas deixarão de exibir estas informações."
+        description="Esta ação removerá permanentemente a ação e suas vinculações aos grupos."
         loading={isDeleting}
       />
     </div>

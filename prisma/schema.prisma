@@ -25,6 +25,91 @@ model Account {
   @@id([provider, providerAccountId])
 }
 
+model Action {
+  id            String        @id
+  title         String
+  description   String?
+  imageUrl      String?
+  type          String
+  startDate     DateTime?
+  endDate       DateTime?
+  projectId     String
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime
+  organizer     String?
+  url           String?
+  backgroundUrl String?
+  Project       Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  ActionGroup   ActionGroup[]
+}
+
+model ActionGroup {
+  actionId String
+  groupId  String
+  Action   Action @relation(fields: [actionId], references: [id], onDelete: Cascade)
+  Group    Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@id([actionId, groupId])
+}
+
+model Group {
+  id              String            @id
+  name            String
+  description     String?
+  projectId       String
+  parentId        String?
+  isVisible       Boolean           @default(true)
+  maxSpots        Int?
+  allowWaitlist   Boolean           @default(false)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime
+  backgroundUrl   String?
+  logoUrl         String?
+  enrollmentEnd   DateTime?
+  enrollmentStart DateTime?
+  ActionGroup     ActionGroup[]
+  Group           Group?            @relation("GroupToGroup", fields: [parentId], references: [id])
+  other_Group     Group[]           @relation("GroupToGroup")
+  Project         Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  GroupMembership GroupMembership[]
+  Invitation      Invitation[]
+}
+
+model GroupMembership {
+  id               String           @id
+  groupId          String
+  userId           String?
+  name             String?
+  email            String?
+  status           MembershipStatus @default(PENDING)
+  additionMethod   AdditionMethod   @default(DIRECT)
+  confirmationCode String?
+  isConfirmed      Boolean          @default(false)
+  confirmedAt      DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime
+  isActive         Boolean          @default(true)
+  role             GroupMemberRole  @default(MEMBER)
+  Group            Group            @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  User             User?            @relation(fields: [userId], references: [id])
+}
+
+model Invitation {
+  id               String           @id
+  groupId          String
+  code             String           @unique
+  type             InvitationType   @default(INDIVIDUAL)
+  confirmationType ConfirmationType @default(INDIVIDUAL)
+  maxUses          Int?
+  currentUses      Int              @default(0)
+  expiresAt        DateTime?
+  isUsed           Boolean          @default(false)
+  createdAt        DateTime         @default(now())
+  targetNames      String?
+  targetUserId     String?
+  Group            Group            @relation(fields: [groupId], references: [id], onDelete: Cascade)
+}
+
 model MobileAuthSession {
   id        String   @id
   sessionId String   @unique
@@ -45,7 +130,7 @@ model PasswordResetToken {
 }
 
 model Project {
-  id                String         @id
+  id                String        @id
   name              String
   description       String?
   logoUrl           String?
@@ -54,32 +139,11 @@ model Project {
   logoHorizontalUrl String?
   link              String?
   email             String?
-  createdAt         DateTime       @default(now())
+  defaultEntryRole  String        @default("visitor")
+  createdAt         DateTime      @default(now())
   updatedAt         DateTime
-  defaultEntryRole  String         @default("visitor")
-  heroVisible       Boolean        @default(true)
-  newArrivalsVisible Boolean        @default(true)
-  countdownVisible   Boolean        @default(true)
-  bestSellersVisible Boolean        @default(true)
-  searchVisible      Boolean        @default(true)
-  heroLabel          String         @default("Carrossel e Calendário")
-  newArrivalsLabel   String         @default("Agenda")
-  countdownLabel     String         @default("Contagem Regressiva")
-  bestSellersLabel   String         @default("Veja também")
-  searchLabel        String         @default("Pesquisa")
-  searchViewType     String         @default("grid")
-  homeSectionOrder   Json?
-  defaultThumbUrl    String?
   Action            Action[]
-  Activity          Activity[]
-  AnpofEvent        AnpofEvent[]
-  Attachment        Attachment[]
-  Category          Category[]
-  InterestList      InterestList[]
-  MainMenu          MainMenu[]
-  Post              Post[]
-  Tag               Tag[]
-  UserInterest      UserInterest[]
+  Group             Group[]
   UserProject       UserProject[]
 }
 
@@ -93,24 +157,19 @@ model Session {
 }
 
 model User {
-  id               String             @id
-  name             String?
-  email            String             @unique
-  emailVerified    DateTime?
-  image            String?
-  password         String?
-  role             UserRole           @default(VISITOR)
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime
-  Account          Account[]
-  Activity         Activity[]
-  InterestList     InterestList[]
-  AuthoredPosts    Post[]             @relation("PostAuthor")
-  EditedPosts      Post[]             @relation("PostEditor")
-  Session          Session[]
-  UserInterest     UserInterest[]
-  ListSubscription ListSubscription[]
-  UserProject      UserProject[]
+  id              String            @id
+  name            String?
+  email           String            @unique
+  emailVerified   DateTime?
+  image           String?
+  password        String?
+  role            UserRole          @default(VISITOR)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime
+  Account         Account[]
+  GroupMembership GroupMembership[]
+  Session         Session[]
+  UserProject     UserProject[]
 }
 
 model UserProject {
@@ -132,239 +191,35 @@ model VerificationToken {
   @@id([identifier, token])
 }
 
-model InterestList {
-  id            String             @id @default(cuid())
-  name          String
-  userId        String
-  projectId     String
-  createdAt     DateTime           @default(now())
-  updatedAt     DateTime           @updatedAt
-  description   String?
-  isPublic      Boolean            @default(false)
-  imageUrl      String?
-  project       Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  interests     UserInterest[]
-  subscriptions ListSubscription[]
-
-  @@unique([userId, name, projectId])
+enum AdditionMethod {
+  DIRECT
+  NEW_USER
+  FORM_INTERNAL
+  FORM_EXTERNAL
+  INVITE
 }
 
-model UserInterest {
-  userId    String
-  postId    String
-  projectId String
-  createdAt DateTime     @default(now())
-  id        String       @id @default(cuid())
-  listId    String
-  list      InterestList @relation(fields: [listId], references: [id], onDelete: Cascade)
-  post      Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
-  project   Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, postId, listId])
+enum ConfirmationType {
+  INDIVIDUAL
+  COLLECTIVE
 }
 
-model ListSubscription {
-  id        String       @id @default(cuid())
-  userId    String
-  listId    String
-  createdAt DateTime     @default(now())
-  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  list      InterestList @relation(fields: [listId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, listId])
+enum GroupMemberRole {
+  OWNER
+  ORGANIZER
+  MEMBER
 }
 
-model Post {
-  id           String           @id @default(cuid())
-  title        String
-  slug         String           @unique
-  summary      String?
-  content      String?
-  imageUrl     String?
-  projectId    String
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
-  publishedAt  DateTime?
-  createdBy    String?
-  updatedBy    String?
-  authorName   String?
-  menuItems    MenuItem[]
-  author       User?            @relation("PostAuthor", fields: [createdBy], references: [id])
-  project      Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  editor       User?            @relation("PostEditor", fields: [updatedBy], references: [id])
-  actions      PostAction[]
-  attachments  PostAttachment[]
-  categories   PostCategory[]
-  tags         PostTag[]
-  UserInterest UserInterest[]
-  postJournals PostJournal[]
-  postIssues   PostIssue[]
-  postArticles PostArticle[]
-  postTheses   PostThesis[]
+enum InvitationType {
+  INDIVIDUAL
+  COLLECTIVE
 }
 
-model Category {
-  id          String         @id @default(cuid())
-  title       String
-  slug        String         @unique
-  description String?
-  imageUrl    String?
-  projectId   String
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @default(now()) @updatedAt
-  isVisible     Boolean        @default(true)
-  type          String?        @default("Postagens")
-  viewType      String         @default("grid")
-  dominantType  String         @default("DEFAULT")
-  dateFormat    String         @default("DEFAULT")
-  project     Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  menuItems   MenuItem[]
-  posts       PostCategory[]
-}
-
-model PostCategory {
-  postId     String
-  categoryId String
-  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  post       Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
-
-  @@id([postId, categoryId])
-}
-
-model Tag {
-  id        String    @id @default(cuid())
-  title     String
-  slug      String    @unique
-  projectId String
-  createdAt DateTime  @default(now())
-  posts     PostTag[]
-  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-}
-
-model PostTag {
-  postId String
-  tagId  String
-  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
-  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
-
-  @@id([postId, tagId])
-}
-
-model MainMenu {
-  id        String     @id @default(cuid())
-  title     String
-  projectId String
-  createdAt DateTime   @default(now())
-  project   Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  items     MenuItem[]
-}
-
-model MenuItem {
-  id         String     @id @default(cuid())
-  title      String
-  url        String?
-  order      Int        @default(0)
-  type       String
-  menuId     String
-  parentId   String?
-  categoryId String?
-  postId     String?
-  createdAt  DateTime   @default(now())
-  category   Category?  @relation(fields: [categoryId], references: [id])
-  menu       MainMenu   @relation(fields: [menuId], references: [id], onDelete: Cascade)
-  parent     MenuItem?  @relation("SubItems", fields: [parentId], references: [id], onDelete: Cascade)
-  subItems   MenuItem[] @relation("SubItems")
-  post       Post?      @relation(fields: [postId], references: [id])
-}
-
-model Attachment {
-  id          String           @id @default(cuid())
-  title       String
-  url         String
-  type        String
-  projectId   String
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-  description String?
-  project     Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  posts       PostAttachment[]
-}
-
-model PostAttachment {
-  postId       String
-  attachmentId String
-  attachment   Attachment @relation(fields: [attachmentId], references: [id], onDelete: Cascade)
-  post         Post       @relation(fields: [postId], references: [id], onDelete: Cascade)
-
-  @@id([postId, attachmentId])
-}
-
-model Action {
-  id          String       @id @default(cuid())
-  title       String
-  description String?
-  imageUrl    String?
-  type        String
-  startDate   DateTime?
-  endDate     DateTime?
-  projectId   String
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  organizer   String?
-  url         String?
-  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  posts       PostAction[]
-}
-
-model PostAction {
-  postId   String
-  actionId String
-  action   Action @relation(fields: [actionId], references: [id], onDelete: Cascade)
-  post     Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
-
-  @@id([postId, actionId])
-}
-
-model AnpofEvent {
-  id        String   @id @default(cuid())
-  url       String   @unique
-  title     String
-  eventDate String?
-  content   String?
-  projectId String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  isUsed    Boolean  @default(false)
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-}
-
-model Activity {
-  id          String   @id @default(cuid())
-  type        String
-  title       String
-  description String?
-  url         String?
-  projectId   String
-  userId      String?
-  createdAt   DateTime @default(now())
-  metadata    Json?
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  user        User?    @relation(fields: [userId], references: [id])
-
-  @@index([projectId])
-  @@index([createdAt])
-}
-
-model ActivityView {
-  id         String   @id @default(cuid())
-  userId     String
-  activityId String
-  viewedAt   DateTime @default(now())
-
-  @@unique([userId, activityId])
-  @@index([userId])
+enum MembershipStatus {
+  PENDING
+  ACTIVE
+  REJECTED
+  WAITLIST
 }
 
 enum UserRole {
@@ -372,114 +227,4 @@ enum UserRole {
   USER
   VISITOR
   BLOCKED
-}
-
-model Journal {
-  id          String        @id @default(cuid())
-  title       String
-  link        String?
-  description String?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  issues      Issue[]
-  posts       PostJournal[]
-}
-
-model Issue {
-  id            String      @id @default(cuid())
-  journalId     String
-  title         String
-  volume        String?
-  number        String?
-  year          Int?
-  description   String?
-  datePublished DateTime?
-  link          String?
-  coverUrl      String?
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-  journal       Journal     @relation(fields: [journalId], references: [id], onDelete: Cascade)
-  articles      Article[]
-  posts         PostIssue[]
-}
-
-model Article {
-  id            String        @id @default(cuid())
-  issueId       String
-  title         String
-  abstract      String?       @map("resumo")
-  authors       String?       @map("autor")
-  doi           String?
-  url           String?       @map("link")
-  pages         String?       @map("paginas")
-  language      String?       @map("idioma")
-  datePublished DateTime?     @map("data_publicacao")
-  keywords      String?       @map("palavras")
-  bibliography  String?       @map("referencias")
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @default(now()) @updatedAt
-  issue         Issue         @relation(fields: [issueId], references: [id], onDelete: Cascade)
-  posts         PostArticle[]
-}
-
-model PostJournal {
-  postId    String
-  journalId String
-  post      Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
-  journal   Journal @relation(fields: [journalId], references: [id], onDelete: Cascade)
-
-  includeIssues Boolean @default(false)
-
-  @@id([postId, journalId])
-}
-
-model PostIssue {
-  postId  String
-  issueId String
-  post    Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
-  issue   Issue  @relation(fields: [issueId], references: [id], onDelete: Cascade)
-
-  includeArticles Boolean @default(false)
-
-  @@id([postId, issueId])
-}
-
-model PostArticle {
-  postId    String
-  articleId String
-  post      Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
-  article   Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
-
-  @@id([postId, articleId])
-}
-
-model Thesis {
-  id                 String       @id @default(cuid())
-  title              String
-  abstract           String?      @map("resumo")
-  authors            String?      @map("autor")
-  url                String?      @map("link")
-  datePublished      DateTime?    @map("data_publicacao")
-  keywords           String?      @map("palavras")
-  advisor            String?      @map("orientador")
-  university         String?      @map("ies")
-  universityCity     String?      @map("uf")
-  universityInitials String?      @map("ies_sigla")
-  program            String?      @map("programa")
-  programCode        String?      @map("programa_cod")
-  degree             String?      @map("grau")
-  line               String?      @map("linha")
-  year               Int?         @map("ano")
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
-  posts              PostThesis[]
-}
-
-model PostThesis {
-  postId   String
-  thesisId String
-  post     Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
-  thesis   Thesis @relation(fields: [thesisId], references: [id], onDelete: Cascade)
-
-  @@id([postId, thesisId])
 }

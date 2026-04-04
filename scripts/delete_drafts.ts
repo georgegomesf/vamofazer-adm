@@ -1,6 +1,6 @@
 import { Client } from "pg";
 
-const databaseUrl = "postgresql://redefilosofica:HeEb9aMP7A842QgT3620@postgresql-33076-0.cloudclusters.net:33076/redefilosofica?connection_limit=5&pool_timeout=10&connect_timeout=10";
+const databaseUrl = process.env.DATABASE_URL;
 
 async function main() {
   const client = new Client({
