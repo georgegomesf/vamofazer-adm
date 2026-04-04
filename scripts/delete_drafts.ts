@@ -20,7 +20,7 @@ async function main() {
       console.log(`Deleted ${delRes.rowCount ?? 0} drafts.`);
     }
   } catch (err) {
-    console.error("Error executing query:", err);
+    console.error("Error  executing query:", err);
   } finally {
     await client.end();
   }
