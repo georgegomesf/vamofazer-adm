@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import {
    Users, UserPlus, Mail, Link as LinkIcon,
    Send, Check, X, Loader2, Search,
    MoreVertical, Trash2, Shield, UserCheck,
    Clipboard, ExternalLink, QrCode, Ticket,
-   UserCog, AlertCircle, Plus
+   UserCog, AlertCircle, Plus, RefreshCcw, Edit2, Save
 } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import axios from "axios";
@@ -16,6 +16,8 @@ import {
    registerNewMember,
    createInvitation,
    deleteInvitation,
+   reactivateInvitation,
+   updateInvitationNames,
    removeMember
 } from "@/actions/groups";
 import Badge from "@/components/ui/badge/Badge";
@@ -26,6 +28,7 @@ interface MemberManagerProps {
 }
 
 export default function MemberManager({ group, onRefresh }: MemberManagerProps) {
+   const formRef = useRef<HTMLDivElement>(null);
    const router = useRouter();
    const searchParams = useSearchParams();
    const pathname = usePathname();
@@ -53,6 +56,7 @@ export default function MemberManager({ group, onRefresh }: MemberManagerProps) 
    const [targetName, setTargetName] = useState("");
    const [targetNames, setTargetNames] = useState<string[]>([]);
    const [newTargetName, setNewTargetName] = useState("");
+   const [editingInviteId, setEditingInviteId] = useState<string | null>(null);
 
    const projectId = process.env.NEXT_PUBLIC_PROJECT_ID;
    const authServiceUrl = process.env.NEXT_PUBLIC_AUTH_SERVICE_URL;
@@ -118,27 +122,96 @@ export default function MemberManager({ group, onRefresh }: MemberManagerProps) 
       setSubmitting(false);
    }
 
-   async function handleCreateInvite() {
+   async function handleCreateOrUpdateInvite() {
       setSubmitting(true);
+      const targetNamesArray = inviteData.type === 'INDIVIDUAL'
+         ? (targetName ? [targetName] : [])
+         : (targetNames.length > 0 ? targetNames : []);
+
       const finalData = {
          ...inviteData,
-         targetNames: inviteData.type === 'INDIVIDUAL' ? (targetName ? [targetName] : null) : (targetNames.length > 0 ? targetNames : null),
-         maxUses: inviteData.type === 'INDIVIDUAL' ? 1 : parseInt(inviteData.maxUses.toString())
+         targetNames: targetNamesArray.length > 0 ? targetNamesArray : null,
+         maxUses: inviteData.type === 'INDIVIDUAL' ? 1 : (inviteData.type === 'COLLECTIVE' ? targetNamesArray.length : parseInt(inviteData.maxUses.toString()))
       };
-      const res = await createInvitation(group.id, finalData);
+
+      let res;
+      if (editingInviteId) {
+         res = await updateInvitationNames(editingInviteId, targetNamesArray);
+      } else {
+         res = await createInvitation(group.id, finalData);
+      }
+
       if (res.success) {
          onRefresh();
          setTargetName("");
          setTargetNames([]);
+         setEditingInviteId(null);
+         setInviteData({
+            type: "INDIVIDUAL",
+            confirmationType: "INDIVIDUAL",
+            maxUses: 1
+         });
       } else {
          alert(res.error);
       }
       setSubmitting(false);
    }
+
+   function handleEditInviteClick(inv: any) {
+      setEditingInviteId(inv.id);
+      const names = inv.targetNames ? JSON.parse(inv.targetNames) : [];
+      setInviteData({
+         type: inv.type,
+         confirmationType: inv.confirmationType,
+         maxUses: inv.maxUses
+      });
+      if (inv.type === 'INDIVIDUAL') {
+         setTargetName(names[0] || "");
+         setTargetNames([]);
+      } else {
+         setTargetName("");
+         setTargetNames(names);
+      }
+
+      // Auto switch to collective if there was multiple names
+      if (names.length > 1) {
+         setInviteData(prev => ({ ...prev, type: 'COLLECTIVE' }));
+      }
+
+      // Scroll smoothly to form
+      setTimeout(() => {
+         formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+   }
+
+   function cancelEditInvite() {
+      setEditingInviteId(null);
+      setTargetName("");
+      setTargetNames([]);
+      setInviteData({
+         type: "INDIVIDUAL",
+         confirmationType: "INDIVIDUAL",
+         maxUses: 1
+      });
+   }
+
    async function handleDeleteInvite(id: string) {
       if (!confirm("Excluir este convite?")) return;
       setSubmitting(true);
       const res = await deleteInvitation(id);
+      if (res.success) {
+         if (editingInviteId === id) cancelEditInvite();
+         onRefresh();
+      } else {
+         alert(res.error);
+      }
+      setSubmitting(false);
+   }
+
+   async function handleReactivateInvite(id: string) {
+      if (!confirm("Reativar este convite? Isso resetará o número de usos.")) return;
+      setSubmitting(true);
+      const res = await reactivateInvitation(id);
       if (res.success) {
          onRefresh();
       } else {
@@ -334,12 +407,16 @@ export default function MemberManager({ group, onRefresh }: MemberManagerProps) 
             )}
 
             {activeTab === "invitations" && (
-               <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
+               <div ref={formRef} className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
                   <div className="p-4 bg-brand-50 dark:bg-brand-500/10 border border-brand-100 dark:border-brand-500/20 rounded-2xl flex gap-4">
                      <Ticket className="h-6 w-6 text-brand-600 mt-1" />
                      <div>
-                        <h4 className="text-sm font-bold text-brand-900 dark:text-brand-300">Gerador de Convites</h4>
-                        <p className="text-xs text-brand-700 dark:text-brand-400">Crie links e códigos alfanuméricos de 6 caracteres para acesso rápido.</p>
+                        <h4 className="text-sm font-bold text-brand-900 dark:text-brand-300">
+                           {editingInviteId ? "Editando Convite" : "Gerador de Convites"}
+                        </h4>
+                        <p className="text-xs text-brand-700 dark:text-brand-400">
+                           {editingInviteId ? "Atualize os nomes dos convidados deste convite." : "Crie links e códigos alfanuméricos de 6 caracteres para acesso rápido."}
+                        </p>
                      </div>
                   </div>
 
@@ -349,13 +426,15 @@ export default function MemberManager({ group, onRefresh }: MemberManagerProps) 
                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Tipo de Convite</label>
                            <div className="grid grid-cols-2 gap-2">
                               <button
+                                 disabled={!!editingInviteId}
                                  onClick={() => setInviteData(prev => ({ ...prev, type: 'INDIVIDUAL', maxUses: 1 }))}
-                                 className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all ${inviteData.type === 'INDIVIDUAL' ? 'bg-brand-500 text-white border-brand-500 shadow-lg shadow-brand-500/20' : 'border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 dark:text-gray-400'}`}>
+                                 className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all ${inviteData.type === 'INDIVIDUAL' ? 'bg-brand-500 text-white border-brand-500 shadow-lg shadow-brand-500/20' : 'border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 dark:text-gray-400'} ${editingInviteId ? 'opacity-50 cursor-not-allowed' : ''}`}>
                                  Individual
                               </button>
                               <button
+                                 disabled={!!editingInviteId}
                                  onClick={() => setInviteData(prev => ({ ...prev, type: 'COLLECTIVE', confirmationType: 'COLLECTIVE' }))}
-                                 className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all ${inviteData.type === 'COLLECTIVE' ? 'bg-brand-500 text-white border-brand-500 shadow-lg shadow-brand-500/20' : 'border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 dark:text-gray-400'}`}>
+                                 className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all ${inviteData.type === 'COLLECTIVE' ? 'bg-brand-500 text-white border-brand-500 shadow-lg shadow-brand-500/20' : 'border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 dark:text-gray-400'} ${editingInviteId ? 'opacity-50 cursor-not-allowed' : ''}`}>
                                  Coletivo
                               </button>
                            </div>
@@ -420,9 +499,14 @@ export default function MemberManager({ group, onRefresh }: MemberManagerProps) 
                            </div>
                         )}
 
-                        <Button onClick={handleCreateInvite} className="w-full mt-4" disabled={submitting}>
-                           Gerar Convite
+                        <Button onClick={handleCreateOrUpdateInvite} className="w-full mt-4" disabled={submitting}>
+                           {editingInviteId ? "Salvar Alterações" : "Gerar Convite"}
                         </Button>
+                        {editingInviteId && (
+                           <button onClick={cancelEditInvite} className="w-full text-xs text-brand-600 dark:text-brand-400 font-bold py-2 hover:underline transition-all">
+                              Cancelar Edição
+                           </button>
+                        )}
                      </div>
 
                      <div className="space-y-4">
@@ -438,29 +522,79 @@ export default function MemberManager({ group, onRefresh }: MemberManagerProps) 
                         <div className="space-y-2">
                            {(!group.Invitation || group.Invitation?.length === 0) ? (
                               <div className="text-xs text-gray-400 italic py-8 text-center border-2 border-dashed border-gray-50 dark:border-gray-800 rounded-xl">Sem convites gerados.</div>
-                           ) : group.Invitation?.reverse().map((inv: any) => (
-                              <div key={inv.id} className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-800">
-                                 <div className="flex items-center gap-2">
-                                    {inv.targetNames && (
-                                       <div className="text-md text-gray-500 italic truncate max-w-[250px]">
-                                          {JSON.parse(inv.targetNames).join(", ")}
+                           ) : [...(group.Invitation || [])].sort((a: any, b: any) => {
+                              const nameA = a.targetNames ? (JSON.parse(a.targetNames)[0] || "Z") : "A";
+                              const nameB = b.targetNames ? (JSON.parse(b.targetNames)[0] || "Z") : "A";
+                              return nameA.localeCompare(nameB);
+                           }).map((inv: any) => {
+                              const isUsed = inv.isUsed || (inv.maxUses && inv.currentUses >= inv.maxUses);
+                              const names = inv.targetNames ? JSON.parse(inv.targetNames) : [];
+                              const isActiveInForm = editingInviteId === inv.id;
+
+                              return (
+                                 <div key={inv.id} className={`p-3 rounded-xl border transition-all ${isActiveInForm ? 'border-brand-500 bg-brand-50/10' : (isUsed ? 'bg-gray-50/50 dark:bg-gray-800/20 border-gray-100 dark:border-gray-800 opacity-80' : 'bg-white dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 shadow-sm')}`}>
+                                    <div className="flex items-center justify-between mb-2">
+                                       <div className="flex items-center gap-2 group/names">
+                                          {inv.targetNames ? (
+                                             <div className="text-md font-bold text-gray-700 dark:text-gray-300 truncate max-w-[220px] sm:max-w-[400px]">
+                                                {names.join(", ")}
+                                             </div>
+                                          ) : (
+                                             <div className="text-[10px] uppercase font-black text-gray-400 tracking-widest">Geral</div>
+                                          )}
+                                          {!isUsed && (
+                                             <button
+                                                onClick={() => handleEditInviteClick(inv)}
+                                                className={`p-1 transition-all ${isActiveInForm ? 'text-brand-500' : 'text-gray-400 hover:text-brand-500'}`}
+                                                title="Editar Nomes"
+                                             >
+                                                <Edit2 className="h-3 w-3" />
+                                             </button>
+                                          )}
                                        </div>
-                                    )}
+
+                                    </div>
+
+                                    <div className="flex items-center justify-between border-t border-gray-100 dark:border-gray-800 pt-2">
+                                       <div className="flex items-center gap-1">
+                                          <button onClick={() => copyToClipboard(inv.code)} className="p-1.5 text-gray-400 hover:text-brand-500 rounded-lg hover:bg-white dark:hover:bg-gray-800 transition-all" title="Copiar Código">
+                                             <Clipboard className="h-4 w-4" />
+                                          </button>
+                                          <button onClick={() => copyToClipboard(`${webServiceUrl}/invite/${inv.id}`)} className="p-1.5 text-gray-400 hover:text-brand-500 rounded-lg hover:bg-white dark:hover:bg-gray-800 transition-all" title="Copiar Link">
+                                             <LinkIcon className="h-4 w-4" />
+                                          </button>
+                                          <div className="flex items-center gap-2">
+                                             {isUsed && (
+                                                <Badge variant="light" color="error" size="sm" className="text-[9px] font-black uppercase tracking-tighter px-2">USADO</Badge>
+                                             )}
+                                             <span className={`text-md font-black ${isUsed ? 'text-gray-400' : 'text-brand-600'}`}>
+                                                {inv.currentUses}/{inv.maxUses || '∞'}
+                                             </span>
+                                          </div>
+                                       </div>
+
+                                       <div className="flex items-center gap-1">
+                                          {isUsed && (
+                                             <button
+                                                onClick={() => handleReactivateInvite(inv.id)}
+                                                className="flex items-center gap-1 px-2 py-1 text-[10px] font-bold text-orange-600 bg-orange-50 dark:bg-orange-500/10 rounded-lg hover:bg-orange-100 transition-all"
+                                             >
+                                                <RefreshCcw className="h-3 w-3" />
+                                                Reativar
+                                             </button>
+                                          )}
+                                          <button
+                                             onClick={() => handleDeleteInvite(inv.id)}
+                                             className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-white dark:hover:bg-gray-800 transition-all"
+                                             title="Excluir Convite"
+                                          >
+                                             <Trash2 className="h-4 w-4" />
+                                          </button>
+                                       </div>
+                                    </div>
                                  </div>
-                                 <div className="flex items-center gap-1">
-                                    <button onClick={() => copyToClipboard(inv.code)} className="p-1.5 text-gray-400 hover:text-brand-500" title="Copiar Código">
-                                       <Clipboard className="h-4 w-4" />
-                                    </button>
-                                    <button onClick={() => copyToClipboard(`${webServiceUrl}/invite/${inv.id}`)} className="p-1.5 text-gray-400 hover:text-brand-500" title="Copiar Link">
-                                       <LinkIcon className="h-4 w-4" />
-                                    </button>
-                                    <button onClick={() => handleDeleteInvite(inv.id)} className="p-1.5 text-gray-400 hover:text-red-500 ml-1" title="Excluir Convite">
-                                       <Trash2 className="h-4 w-4" />
-                                    </button>
-                                    <span className="text-md font-bold text-gray-500 ml-2">{inv.currentUses}/{inv.maxUses || '∞'}</span>
-                                 </div>
-                              </div>
-                           ))}
+                              );
+                           })}
                         </div>
                      </div>
                   </div>

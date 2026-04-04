@@ -10,6 +10,11 @@ export async function POST(
   const { id: invitationId } = await params;
   try {
     const { userId, namesFromCollective, wantsNews, confirmationEmail } = await request.json();
+    const headers = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    };
 
     let invitation = await prisma.invitation.findUnique({
       where: { id: invitationId },
@@ -25,13 +30,13 @@ export async function POST(
         });
 
         if (!membershipByLink) {
-            return NextResponse.json({ error: "Convite não encontrado" }, { status: 404 });
+            return NextResponse.json({ error: "Convite não encontrado" }, { status: 404, headers });
         }
     }
 
     // Block new uses if already used
     if (invitation && invitation.isUsed) {
-        return NextResponse.json({ error: "Este convite já foi processado" }, { status: 400 });
+        return NextResponse.json({ error: "Este convite já foi processado" }, { status: 400, headers });
     }
 
     const memberships = [];
@@ -45,7 +50,7 @@ export async function POST(
         });
 
         if (invitation.maxUses && invitation.currentUses >= invitation.maxUses) {
-            return NextResponse.json({ error: "Limite de usos do convite atingido" }, { status: 400 });
+            return NextResponse.json({ error: "Limite de usos do convite atingido" }, { status: 400, headers });
         }
 
         if (invitation.type === 'INDIVIDUAL') {
@@ -170,7 +175,12 @@ export async function POST(
 
   } catch (error) {
     console.error("Error confirming participation:", error);
-    return NextResponse.json({ error: "Erro interno do servidor" }, { status: 500 });
+    const headers = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    };
+    return NextResponse.json({ error: "Erro interno do servidor" }, { status: 500, headers });
   }
 }
 

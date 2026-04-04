@@ -130,35 +130,35 @@ model PasswordResetToken {
 }
 
 model Project {
-  id                String        @id
-  name              String
-  description       String?
-  logoUrl           String?
-  coverUrl          String?
-  backgroundUrl     String?
-  logoHorizontalUrl String?
-  link              String?
+  id                 String        @id
+  name               String
+  description        String?
+  logoUrl            String?
+  coverUrl           String?
+  backgroundUrl      String?
+  logoHorizontalUrl  String?
+  link               String?
   email              String?
   defaultEntryRole   String        @default("visitor")
-  defaultThumbUrl    String?
-  heroVisible        Boolean       @default(false)
-  newArrivalsVisible Boolean       @default(false)
-  countdownVisible   Boolean       @default(false)
-  bestSellersVisible Boolean       @default(false)
-  searchVisible      Boolean       @default(true)
-  heroLabel          String?
-  newArrivalsLabel   String?
-  countdownLabel     String?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime
   bestSellersLabel   String?
+  bestSellersVisible Boolean       @default(false)
+  countdownLabel     String?
+  countdownVisible   Boolean       @default(false)
+  defaultThumbUrl    String?
+  heroLabel          String?
+  heroVisible        Boolean       @default(false)
+  homeSectionOrder   Json?
+  newArrivalsLabel   String?
+  newArrivalsVisible Boolean       @default(false)
   searchLabel        String?
   searchViewType     String?       @default("grid")
-  homeSectionOrder   Json?
+  searchVisible      Boolean       @default(true)
   theme              String?       @default("light")
-  createdAt          DateTime      @default(now())
-  updatedAt         DateTime
-  Action            Action[]
-  Group             Group[]
-  UserProject       UserProject[]
+  Action             Action[]
+  Group              Group[]
+  UserProject        UserProject[]
 }
 
 model Session {

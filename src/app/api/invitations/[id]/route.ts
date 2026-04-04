@@ -69,7 +69,12 @@ export async function GET(
 
     return NextResponse.json({ error: "Convite não encontrado ou ID inválido" }, { status: 404, headers });
   } catch (error) {
-    return NextResponse.json({ error: "Erro ao buscar convite" }, { status: 500 });
+    const headers = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    };
+    return NextResponse.json({ error: "Erro ao buscar convite" }, { status: 500, headers });
   }
 }
 

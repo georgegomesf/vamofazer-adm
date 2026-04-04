@@ -208,10 +208,42 @@ export async function deleteInvitation(id: string) {
   }
 }
 
+export async function reactivateInvitation(id: string) {
+  try {
+    const invitation = await prisma.invitation.update({
+      where: { id },
+      data: { 
+        currentUses: 0,
+        isUsed: false
+      }
+    });
+    revalidatePath(`/adm/groups/${invitation.groupId}/manage`);
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
 export async function removeMember(membershipId: string) {
   try {
     const membership = await prisma.groupMembership.delete({ where: { id: membershipId } });
     revalidatePath(`/adm/groups/${membership.groupId}/manage`);
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function updateInvitationNames(id: string, targetNames: string[]) {
+  try {
+    const invitation = await prisma.invitation.update({
+      where: { id },
+      data: { 
+        targetNames: JSON.stringify(targetNames),
+        maxUses: targetNames.length > 0 ? targetNames.length : 1
+      }
+    });
+    revalidatePath(`/adm/groups/${invitation.groupId}/manage`);
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
