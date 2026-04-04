@@ -10,31 +10,11 @@ export async function GET(request: Request) {
     const actions = await prisma.action.findMany({
       where: {
         ...(projectId ? { projectId } : {}),
-        posts: {
-          some: {
-            post: {
-              publishedAt: {
-                not: null,
-                lte: new Date(),
-              },
-            },
-          },
-        },
       },
       include: {
-        posts: {
-          include: {
-            post: {
-              include: {
-                actions: {
-                  include: {
-                    action: true
-                  }
-                }
-              }
-            },
-          },
-        },
+        ActionGroup: {
+          include: { Group: true }
+        }
       },
       orderBy: { createdAt: "desc" },
     });
