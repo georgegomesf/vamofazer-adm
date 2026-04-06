@@ -7,8 +7,9 @@ import {
    Send, Check, X, Loader2, Search,
    MoreVertical, Trash2, Shield, UserCheck,
    Clipboard, ExternalLink, QrCode, Ticket,
-   UserCog, AlertCircle, Plus, RefreshCcw, Edit2, Save
+   UserCog, AlertCircle, Plus, RefreshCcw, Edit2, Save, Download
 } from "lucide-react";
+import * as XLSX from "xlsx";
 import Button from "@/components/ui/button/Button";
 import axios from "axios";
 import {
@@ -123,14 +124,19 @@ export default function MemberManager({ group, onRefresh }: MemberManagerProps) 
    }
 
    async function handleCreateOrUpdateInvite() {
-      setSubmitting(true);
       const targetNamesArray = inviteData.type === 'INDIVIDUAL'
-         ? (targetName ? [targetName] : [])
+         ? (targetName.trim() ? [targetName.trim()] : [])
          : (targetNames.length > 0 ? targetNames : []);
 
+      if (targetNamesArray.length === 0) {
+         alert("Por favor, informe o(s) nome(s) do(s) convidado(s) para gerar o convite.");
+         return;
+      }
+
+      setSubmitting(true);
       const finalData = {
          ...inviteData,
-         targetNames: targetNamesArray.length > 0 ? targetNamesArray : null,
+         targetNames: targetNamesArray,
          maxUses: inviteData.type === 'INDIVIDUAL' ? 1 : (inviteData.type === 'COLLECTIVE' ? targetNamesArray.length : parseInt(inviteData.maxUses.toString()))
       };
 
@@ -155,6 +161,17 @@ export default function MemberManager({ group, onRefresh }: MemberManagerProps) 
          alert(res.error);
       }
       setSubmitting(false);
+   }
+
+   function handleAddTargetName() {
+      if (newTargetName.trim()) {
+         setTargetNames(prev => {
+            const next = [...prev, newTargetName.trim()];
+            setInviteData(d => ({ ...d, maxUses: next.length }));
+            return next;
+         });
+         setNewTargetName("");
+      }
    }
 
    function handleEditInviteClick(inv: any) {
@@ -236,6 +253,45 @@ export default function MemberManager({ group, onRefresh }: MemberManagerProps) 
       navigator.clipboard.writeText(text);
    };
 
+   const exportParticipants = () => {
+      const data = group.GroupMembership?.map((m: any) => ({
+         "Nome": m.User?.name || m.name || "Sem Nome",
+         "Email": m.User?.email || m.email || "Sem Email",
+         "Status": m.status,
+         "Código de Confirmação": m.confirmationCode || "-",
+         "Método de Adesão": m.additionMethod,
+         "Confirmado": m.isConfirmed ? "Sim" : "Não",
+         "Data de Confirmação": m.confirmedAt ? new Date(m.confirmedAt).toLocaleString() : "-",
+         "Data de Cadastro": new Date(m.createdAt).toLocaleString(),
+      })) || [];
+
+      const worksheet = XLSX.utils.json_to_sheet(data);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Participantes");
+      XLSX.writeFile(workbook, `participantes_${group.name.replace(/\s+/g, '_')}.xlsx`);
+   };
+
+   const exportInvitations = () => {
+      const data = group.Invitation?.map((inv: any) => {
+         const names = inv.targetNames ? JSON.parse(inv.targetNames) : [];
+         return {
+            "Convidado(s)": names.join(", "),
+            "Tipo": inv.type,
+            "Código": inv.code,
+            "Link": `${webServiceUrl}/invite/${inv.id}`,
+            "Usos Atuais": inv.currentUses,
+            "Limite de Usos": inv.maxUses || "Ilimitado",
+            "Usado": inv.isUsed ? "Sim" : "Não",
+            "Data de Criação": new Date(inv.createdAt).toLocaleString(),
+         };
+      }) || [];
+
+      const worksheet = XLSX.utils.json_to_sheet(data);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Convites");
+      XLSX.writeFile(workbook, `convites_${group.name.replace(/\s+/g, '_')}.xlsx`);
+   };
+
    return (
       <div className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900 overflow-hidden min-h-[500px]">
          <div className="flex border-b border-gray-200 dark:border-gray-800 overflow-x-auto">
@@ -258,11 +314,22 @@ export default function MemberManager({ group, onRefresh }: MemberManagerProps) 
             {activeTab === "members" && (
                <div className="space-y-4">
                   <div className="flex justify-between items-center mb-4">
-                     {group.maxSpots && (
+                     {group.maxSpots ? (
                         <div className="text-xs font-bold text-gray-500 uppercase">
                            {(group.GroupMembership?.length || 0)} / {group.maxSpots} vagas preenchidas
                         </div>
+                     ) : (
+                        <div className="text-xs font-bold text-gray-500 uppercase">
+                           {(group.GroupMembership?.length || 0)} participantes
+                        </div>
                      )}
+                     <button
+                        onClick={exportParticipants}
+                        className="flex items-center gap-2 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-brand-600 hover:bg-brand-50 rounded-lg transition-all border border-brand-100"
+                     >
+                        <Download className="h-3 w-3" />
+                        Exportar XLSX
+                     </button>
                   </div>
 
                   <div className="overflow-x-auto">
@@ -408,18 +475,6 @@ export default function MemberManager({ group, onRefresh }: MemberManagerProps) 
 
             {activeTab === "invitations" && (
                <div ref={formRef} className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
-                  <div className="p-4 bg-brand-50 dark:bg-brand-500/10 border border-brand-100 dark:border-brand-500/20 rounded-2xl flex gap-4">
-                     <Ticket className="h-6 w-6 text-brand-600 mt-1" />
-                     <div>
-                        <h4 className="text-sm font-bold text-brand-900 dark:text-brand-300">
-                           {editingInviteId ? "Editando Convite" : "Gerador de Convites"}
-                        </h4>
-                        <p className="text-xs text-brand-700 dark:text-brand-400">
-                           {editingInviteId ? "Atualize os nomes dos convidados deste convite." : "Crie links e códigos alfanuméricos de 6 caracteres para acesso rápido."}
-                        </p>
-                     </div>
-                  </div>
-
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 p-6 border border-gray-100 dark:border-gray-800 rounded-2xl">
                      <div className="space-y-4">
                         <div className="space-y-2">
@@ -442,11 +497,17 @@ export default function MemberManager({ group, onRefresh }: MemberManagerProps) 
 
                         {inviteData.type === 'INDIVIDUAL' && (
                            <div className="space-y-1 animate-in slide-in-from-top-2">
-                              <label className="text-[10px] text-gray-400 uppercase ml-1">Para (Nome Opcional)</label>
+                              <label className="text-[10px] text-gray-400 uppercase ml-1">Para (Nome do Convidado)</label>
                               <input
                                  type="text"
                                  value={targetName}
                                  onChange={(e) => setTargetName(e.target.value)}
+                                 onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                       e.preventDefault();
+                                       handleCreateOrUpdateInvite();
+                                    }
+                                 }}
                                  placeholder="Ex: João Silva"
                                  className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl outline-none"
                               />
@@ -461,20 +522,17 @@ export default function MemberManager({ group, onRefresh }: MemberManagerProps) 
                                     type="text"
                                     value={newTargetName}
                                     onChange={(e) => setNewTargetName(e.target.value)}
+                                    onKeyDown={(e) => {
+                                       if (e.key === 'Enter') {
+                                          e.preventDefault();
+                                          handleAddTargetName();
+                                       }
+                                    }}
                                     placeholder="Adicionar nome..."
                                     className="flex-1 px-3 py-1.5 text-md bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg outline-none"
                                  />
                                  <button
-                                    onClick={() => {
-                                       if (newTargetName) {
-                                          setTargetNames(prev => {
-                                             const next = [...prev, newTargetName];
-                                             setInviteData(d => ({ ...d, maxUses: next.length }));
-                                             return next;
-                                          });
-                                          setNewTargetName("");
-                                       }
-                                    }}
+                                    onClick={handleAddTargetName}
                                     className="p-2 bg-brand-100 text-brand-600 rounded-lg hover:bg-brand-200"
                                  >
                                     <Plus className="h-4 w-4" />
@@ -514,9 +572,18 @@ export default function MemberManager({ group, onRefresh }: MemberManagerProps) 
                            const totalUses = group.Invitation?.reduce((acc: number, inv: any) => acc + (inv.currentUses || 0), 0) || 0;
                            const totalMax = group.Invitation?.reduce((acc: number, inv: any) => acc + (inv.maxUses || 0), 0) || 0;
                            return (
-                              <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                 Convites ({totalUses}/{totalMax})
-                              </h4>
+                              <div className="flex justify-between items-center">
+                                 <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                    Convites ({totalUses}/{totalMax})
+                                 </h4>
+                                 <button
+                                    onClick={exportInvitations}
+                                    className="flex items-center gap-2 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-brand-600 hover:bg-brand-50 rounded-lg transition-all border border-brand-100"
+                                 >
+                                    <Download className="h-3 w-3" />
+                                    Exportar XLSX
+                                 </button>
+                              </div>
                            );
                         })()}
                         <div className="space-y-2">

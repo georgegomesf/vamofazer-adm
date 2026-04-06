@@ -15,8 +15,8 @@ async function sendMemberInviteEmail(email: string, name: string, groupName: str
   try {
     const response = await fetch("https://api.brevo.com/v3/smtp/email", {
       method: "POST",
-      headers: { 
-        "api-key": BREVO_API_KEY, 
+      headers: {
+        "api-key": BREVO_API_KEY,
         "Content-Type": "application/json",
         "Accept": "application/json"
       },
@@ -212,7 +212,7 @@ export async function reactivateInvitation(id: string) {
   try {
     const invitation = await prisma.invitation.update({
       where: { id },
-      data: { 
+      data: {
         currentUses: 0,
         isUsed: false
       }
@@ -238,7 +238,7 @@ export async function updateInvitationNames(id: string, targetNames: string[]) {
   try {
     const invitation = await prisma.invitation.update({
       where: { id },
-      data: { 
+      data: {
         targetNames: JSON.stringify(targetNames),
         maxUses: targetNames.length > 0 ? targetNames.length : 1
       }
@@ -257,14 +257,14 @@ export async function sendConfirmationCodesEmail(email: string, groupName: strin
   try {
     const codesHtml = memberships.map(m => `
       <div style="padding: 12px; border: 1px solid #eee; border-radius: 8px; margin-bottom: 8px;">
-        <strong>${m.name || 'Participante'}</strong>: <span style="font-family: monospace; font-size: 18px; color: #3C50E0;">${m.confirmationCode}</span>
+        <strong>${m.name || 'Código'}</strong>: <span style="font-family: monospace; font-size: 18px; color: #3C50E0;">${m.confirmationCode}</span>
       </div>
     `).join('');
 
     const response = await fetch("https://api.brevo.com/v3/smtp/email", {
       method: "POST",
-      headers: { 
-        "api-key": BREVO_API_KEY, 
+      headers: {
+        "api-key": BREVO_API_KEY,
         "Content-Type": "application/json",
         "Accept": "application/json"
       },
@@ -274,15 +274,15 @@ export async function sendConfirmationCodesEmail(email: string, groupName: strin
         subject: `Comprovação de Participação: ${groupName}`,
         htmlContent: `
           <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 12px; padding: 24px;">
-            <h2 style="color: #1a1a1a;">Sua participação está confirmada!</h2>
+            <h2 style="color: #1a1a1a;">A participação está confirmada!</h2>
             <p style="color: #444; font-size: 16px; line-height: 1.6;">
-              Abaixo estão os códigos de comprovação para o grupo <strong>${groupName}</strong>:
+              A participação em <strong>${groupName}</strong> foi confirmada!
             </p>
             <div style="margin: 24px 0;">
               ${codesHtml}
             </div>
             <p style="color: #888; font-size: 12px;">
-              Guarde estes códigos. Eles podem ser solicitados pelos organizadores do projeto.
+              Guarde este email. O código de convite pode ser solicitado pelos organizadores.
             </p>
           </div>
         `,

@@ -9,7 +9,8 @@ export async function POST(
 ) {
   const { id: invitationId } = await params;
   try {
-    const { userId, namesFromCollective, wantsNews, confirmationEmail } = await request.json();
+    const { name, userId, namesFromCollective, wantsNews, confirmationEmail } = await request.json();
+    const email = confirmationEmail;
     const headers = {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
@@ -54,12 +55,12 @@ export async function POST(
         }
 
         if (invitation.type === 'INDIVIDUAL') {
-            const existing = await prisma.groupMembership.findFirst({
+            const existing = userId ? await prisma.groupMembership.findFirst({
                 where: {
                     groupId: invitation.groupId,
                     userId: userId
                 }
-            });
+            }) : null;
 
             const code = Math.random().toString(36).substring(2, 8).toUpperCase();
             let m;
@@ -72,6 +73,8 @@ export async function POST(
                         isConfirmed: true,
                         confirmedAt: new Date(),
                         additionMethod: "INVITE",
+                        name: name || existing.name,
+                        email: email || existing.email,
                         confirmationCode: invitation.code || code,
                         updatedAt: new Date()
                     }
@@ -82,6 +85,8 @@ export async function POST(
                         id: Math.random().toString(36).substring(2, 11),
                         groupId: invitation.groupId,
                         userId: userId,
+                        name: name,
+                        email: email,
                         status: "ACTIVE",
                         isConfirmed: true,
                         confirmedAt: new Date(),
@@ -115,6 +120,7 @@ export async function POST(
                             id: Math.random().toString(36).substring(2, 11),
                             groupId: invitation.groupId,
                             name: name,
+                            email: email,
                             status: "ACTIVE",
                             isConfirmed: true,
                             confirmedAt: new Date(),
@@ -149,6 +155,8 @@ export async function POST(
             where: { id: membershipByLink.id },
             data: {
                 userId: userId,
+                name: name || membershipByLink.name,
+                email: email || membershipByLink.email,
                 status: "ACTIVE",
                 isConfirmed: true,
                 confirmedAt: new Date(),
