@@ -245,7 +245,7 @@ export async function reactivateInvitation(id: string) {
   }
 }
 
-export async function updateMemberRole(membershipId: string, role: string) {
+export async function updateMemberRole(membershipId: string, role: any) {
   try {
     const membership = await prisma.groupMembership.update({
       where: { id: membershipId },
