@@ -28,6 +28,7 @@ const navItems: NavItem[] = [
     subItems: [
       { name: "Ações", path: "/adm/actions" },
       { name: "Grupos", path: "/adm/groups" },
+      { name: "Plugins", path: "/adm/plugins" },
     ],
   },
   {

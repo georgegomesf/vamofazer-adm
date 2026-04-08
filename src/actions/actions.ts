@@ -23,6 +23,9 @@ export async function getActionById(id: string) {
       include: {
         ActionGroup: {
           include: { Group: true }
+        },
+        ActionPlugin: {
+          include: { Plugin: true }
         }
       }
     });
@@ -35,7 +38,7 @@ export async function getActionById(id: string) {
 
 export async function createAction(projectId: string, data: any) {
   try {
-    const { groups, ...actionData } = data;
+    const { groups, isPublished, ...actionData } = data;
     const action = await prisma.action.create({
       data: {
         ...actionData,
@@ -43,9 +46,13 @@ export async function createAction(projectId: string, data: any) {
         id: Math.random().toString(36).substring(2, 11),
         startDate: actionData.startDate ? new Date(actionData.startDate) : null,
         endDate: actionData.endDate ? new Date(actionData.endDate) : null,
+        publishedAt: actionData.publishedAt ? new Date(actionData.publishedAt) : null,
         updatedAt: new Date(),
         ActionGroup: groups ? {
           create: groups.map((groupId: string) => ({ groupId }))
+        } : undefined,
+        ActionPlugin: data.plugins ? {
+          create: data.plugins.map((pluginId: string) => ({ pluginId }))
         } : undefined
       },
     });
@@ -59,7 +66,7 @@ export async function createAction(projectId: string, data: any) {
 
 export async function updateAction(id: string, data: any) {
   try {
-    const { groups, ...actionData } = data;
+    const { groups, isPublished, ...actionData } = data;
     
     if (groups !== undefined) {
       await prisma.actionGroup.deleteMany({ where: { actionId: id } });
@@ -70,12 +77,23 @@ export async function updateAction(id: string, data: any) {
       }
     }
 
+    if (data.plugins !== undefined) {
+      await prisma.actionPlugin.deleteMany({ where: { actionId: id } });
+      if (data.plugins.length > 0) {
+        await prisma.actionPlugin.createMany({
+          data: data.plugins.map((pluginId: string) => ({ actionId: id, pluginId }))
+        });
+      }
+    }
+
+    const { plugins, ...cleanedActionData } = actionData;
     const action = await prisma.action.update({
       where: { id },
       data: {
-        ...actionData,
+        ...cleanedActionData,
         startDate: actionData.startDate ? new Date(actionData.startDate) : null,
         endDate: actionData.endDate ? new Date(actionData.endDate) : null,
+        publishedAt: actionData.publishedAt ? new Date(actionData.publishedAt) : null,
         updatedAt: new Date(),
       },
     });

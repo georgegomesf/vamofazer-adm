@@ -7,9 +7,12 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const projectId = searchParams.get("projectId");
 
+    const now = new Date();
     const actions = await prisma.action.findMany({
       where: {
         ...(projectId ? { projectId } : {}),
+        publishedAt: { lte: now, not: null },
+        onlyMembers: false,
       },
       include: {
         ActionGroup: {

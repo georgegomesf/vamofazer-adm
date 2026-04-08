@@ -3,11 +3,13 @@
 import { useState, useEffect } from "react";
 import { useProject } from "@/context/ProjectContext";
 import { getGroups, deleteGroup, createGroup } from "@/actions/groups";
+import { useSession } from "next-auth/react";
 import { Plus, Search, Users, Settings, Trash2, Loader2 } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import Link from "next/link";
 
 export default function GroupsPage() {
+  const { data: session } = useSession();
   const { projectId } = useProject();
   const [groups, setGroups] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,7 +34,7 @@ export default function GroupsPage() {
     if (!projectId || !newGroup.name.trim()) return;
     setCreating(true);
     try {
-      await createGroup(projectId, newGroup);
+      await createGroup(projectId, newGroup, session?.user?.id);
       setShowCreateModal(false);
       setNewGroup({ name: "", description: "" });
       await fetchGroups();
@@ -140,8 +142,15 @@ export default function GroupsPage() {
                   </Link>
                   <Button
                     variant="outline"
-                    className="h-9 px-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 border-red-200 dark:border-red-500/30"
-                    onClick={() => handleDelete(group.id, group.name)}
+                    className={`h-9 px-3 ${group.ActionGroup?.length > 0 ? 'text-gray-300 cursor-not-allowed border-gray-100' : 'text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 border-red-200 dark:border-red-500/30'}`}
+                    onClick={() => {
+                        if (group.ActionGroup?.length > 0) {
+                            alert("Este grupo está vinculado a uma Ação e não pode ser excluído. Desvincule-o primeiro nas configurações da Ação.");
+                            return;
+                        }
+                        handleDelete(group.id, group.name);
+                    }}
+                    title={group.ActionGroup?.length > 0 ? "Grupo vinculado a uma Ação" : "Excluir Grupo"}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>

@@ -58,7 +58,11 @@ export async function getGroups(projectId: string) {
   try {
     return await prisma.group.findMany({
       where: { projectId },
-      include: { _count: { select: { GroupMembership: true } }, Group: true },
+      include: { 
+        _count: { select: { GroupMembership: true } }, 
+        Group: true,
+        ActionGroup: true
+      },
       orderBy: { createdAt: "desc" },
     });
   } catch (error) {
@@ -84,14 +88,27 @@ export async function getGroupById(id: string) {
   }
 }
 
-export async function createGroup(projectId: string, data: any) {
+export async function createGroup(projectId: string, data: any, userId?: string) {
   try {
+    const groupId = Math.random().toString(36).substring(2, 11);
     const group = await prisma.group.create({
       data: {
         ...data,
         projectId,
-        id: Math.random().toString(36).substring(2, 11),
+        id: groupId,
         updatedAt: new Date(),
+        GroupMembership: userId ? {
+          create: {
+            id: Math.random().toString(36).substring(2, 11),
+            userId,
+            role: "OWNER",
+            status: "ACTIVE",
+            additionMethod: "DIRECT",
+            isConfirmed: true,
+            confirmedAt: new Date(),
+            updatedAt: new Date(),
+          }
+        } : undefined
       },
     });
     revalidatePath("/adm/groups");
@@ -113,6 +130,10 @@ export async function updateGroup(id: string, data: any) {
 
 export async function deleteGroup(id: string) {
   try {
+    const actionLink = await prisma.actionGroup.findFirst({ where: { groupId: id } });
+    if (actionLink) {
+        return { success: false, error: "Este grupo está vinculado a uma Ação e não pode ser excluído." };
+    }
     await prisma.group.delete({ where: { id } });
     revalidatePath("/adm/groups");
     return { success: true };
@@ -219,6 +240,19 @@ export async function reactivateInvitation(id: string) {
     });
     revalidatePath(`/adm/groups/${invitation.groupId}/manage`);
     return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function updateMemberRole(membershipId: string, role: string) {
+  try {
+    const membership = await prisma.groupMembership.update({
+      where: { id: membershipId },
+      data: { role }
+    });
+    revalidatePath(`/adm/groups/${membership.groupId}/manage`);
+    return { success: true, membership };
   } catch (error: any) {
     return { success: false, error: error.message };
   }

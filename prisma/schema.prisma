@@ -39,8 +39,11 @@ model Action {
   organizer     String?
   url           String?
   backgroundUrl String?
+  publishedAt   DateTime?     @default(now())
+  onlyMembers   Boolean       @default(false)
   Project       Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
   ActionGroup   ActionGroup[]
+  ActionPlugin  ActionPlugin[]
 }
 
 model ActionGroup {
@@ -241,4 +244,40 @@ enum UserRole {
   USER
   VISITOR
   BLOCKED
+}
+
+enum PluginType {
+  STANDARD
+  FREE
+  PREMIUM
+}
+
+enum PluginCategory {
+  ACTIVITY
+  COMMUNICATION
+  ORGANIZATION
+  PARTY
+  OTHER
+}
+
+model Plugin {
+  id           String         @id @default(cuid())
+  name         String
+  description  String?
+  type         PluginType
+  category     PluginCategory
+  imageUrl     String?
+  available    Boolean        @default(true)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  ActionPlugin ActionPlugin[]
+}
+
+model ActionPlugin {
+  actionId String
+  pluginId String
+  Action   Action @relation(fields: [actionId], references: [id], onDelete: Cascade)
+  Plugin   Plugin @relation(fields: [pluginId], references: [id], onDelete: Cascade)
+
+  @@id([actionId, pluginId])
 }

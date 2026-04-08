@@ -19,7 +19,8 @@ import {
    deleteInvitation,
    reactivateInvitation,
    updateInvitationNames,
-   removeMember
+   removeMember,
+   updateMemberRole
 } from "@/actions/groups";
 import Badge from "@/components/ui/badge/Badge";
 
@@ -249,6 +250,17 @@ export default function MemberManager({ group, onRefresh }: MemberManagerProps) 
       setSubmitting(false);
    }
 
+   async function handleUpdateRole(id: string, role: string) {
+      setSubmitting(true);
+      const res = await updateMemberRole(id, role);
+      if (res.success) {
+         onRefresh();
+      } else {
+         alert(res.error);
+      }
+      setSubmitting(false);
+   }
+
    const copyToClipboard = (text: string) => {
       navigator.clipboard.writeText(text);
    };
@@ -338,6 +350,7 @@ export default function MemberManager({ group, onRefresh }: MemberManagerProps) 
                            <tr className="text-left text-gray-400 uppercase text-[10px] font-black tracking-widest border-b border-gray-100 dark:border-gray-800">
                               <th className="pb-3 px-2">Participante</th>
                               <th className="pb-3 px-2 text-center">Status</th>
+                              <th className="pb-3 px-2 text-center">Função</th>
                               <th className="pb-3 px-2 text-center">Cód. Confirmação</th>
                               <th className="pb-3 px-2 text-center">Método</th>
                               <th className="pb-3 px-2 text-right">Ação</th>
@@ -365,6 +378,24 @@ export default function MemberManager({ group, onRefresh }: MemberManagerProps) 
                                     <Badge variant="light" color={m.status === 'ACTIVE' ? 'success' : 'warning'}>
                                        {m.status === 'ACTIVE' ? 'ATIVO' : m.status}
                                     </Badge>
+                                 </td>
+                                 <td className="py-4 px-2 text-center">
+                                    <div className="flex flex-col items-center gap-1">
+                                       <Badge 
+                                           variant="light" 
+                                           color={m.role === 'OWNER' ? 'success' : m.role === 'ORGANIZER' ? 'primary' : 'light'}
+                                       >
+                                          {m.role === 'OWNER' ? 'DONO' : m.role === 'ORGANIZER' ? 'ORGANIZADOR' : 'MEMBRO'}
+                                       </Badge>
+                                       {m.role !== 'OWNER' && (
+                                          <button 
+                                             onClick={() => handleUpdateRole(m.id, m.role === 'ORGANIZER' ? 'MEMBER' : 'ORGANIZER')}
+                                             className="text-[9px] font-black text-brand-500 hover:underline uppercase tracking-tighter"
+                                          >
+                                             {m.role === 'ORGANIZER' ? 'Rebaixar' : 'Promover'}
+                                          </button>
+                                       )}
+                                    </div>
                                  </td>
                                  <td className="py-4 px-2 text-center">
                                     {m.confirmationCode ? (
